@@ -1,6 +1,6 @@
+import jwt from "@/src/_common/jwt"
+import { getAuthUserId, notFound, unauthorized } from "@/src/_common/utils"
 import Elysia, { t } from "elysia"
-import jwt from "../../common/jwt"
-import { getAuthUserId, notFound, unauthorized } from "../../common/utils"
 import { ProfileService } from "./profiles.service"
 
 const profilesController = new Elysia({ prefix: "/profiles" }).use(jwt).guard(

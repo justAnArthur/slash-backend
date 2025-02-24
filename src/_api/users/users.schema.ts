@@ -1,6 +1,6 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-typebox"
 import type { Static } from "elysia"
-import { users } from "../../db/schema"
+import { users } from "../../db/schema.auth"
 
 export const userInsert = createInsertSchema(users)
 export const userSelect = createSelectSchema(users)

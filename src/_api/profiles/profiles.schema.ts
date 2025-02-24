@@ -1,6 +1,6 @@
 import { createSelectSchema } from "drizzle-typebox"
 import type { Static } from "elysia"
-import { userFollows } from "../../db/schema"
+import { userFollows } from "../../db/schema.auth"
 import type { User } from "../users/users.schema"
 
 export type Profile = Pick<User, "username" | "bio" | "image">

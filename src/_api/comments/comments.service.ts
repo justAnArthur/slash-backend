@@ -1,7 +1,7 @@
+import { isDefined, notFound, unprocessable } from "@/src/_common/utils"
 import { eq } from "drizzle-orm"
-import { isDefined, notFound, unprocessable } from "../../common/utils"
 import db from "../../db/connection"
-import { articles, comments } from "../../db/schema"
+import { articles, comments } from "../../db/schema.auth"
 import type { CommentInsert, CommentPayload } from "./comments.schema"
 import { formattedComment } from "./comments.util"
 

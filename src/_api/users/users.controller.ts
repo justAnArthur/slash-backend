@@ -1,6 +1,6 @@
+import jwt from "@/src/_common/jwt"
+import { getAuthUserId, notFound, unauthorized } from "@/src/_common/utils"
 import { Elysia, t } from "elysia"
-import jwt from "../../common/jwt"
-import { getAuthUserId, notFound, unauthorized } from "../../common/utils"
 import { userInsert } from "./users.schema"
 import { UserService } from "./users.service"
 import { formattedUser } from "./users.util"

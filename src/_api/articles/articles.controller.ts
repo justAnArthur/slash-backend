@@ -1,6 +1,6 @@
+import jwt from "@/src/_common/jwt"
+import { getAuthUserId, unauthorized } from "@/src/_common/utils"
 import { Elysia, t } from "elysia"
-import jwt from "../../common/jwt"
-import { getAuthUserId, unauthorized } from "../../common/utils"
 import { articleBase, articlePayload, articleQuery } from "./articles.schema"
 import { ArticleService } from "./articles.service"
 

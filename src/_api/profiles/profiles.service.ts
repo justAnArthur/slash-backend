@@ -1,7 +1,7 @@
+import { notFound } from "@/src/_common/utils"
 import { and, eq } from "drizzle-orm"
-import { notFound } from "../../common/utils"
 import db from "../../db/connection"
-import { userFollows, users } from "../../db/schema"
+import { userFollows, users } from "../../db/schema.auth"
 import { formatProfile } from "./profiles.utils"
 
 export abstract class ProfileService {
