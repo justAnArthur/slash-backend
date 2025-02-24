@@ -1,7 +1,7 @@
 import { constants, Database } from "bun:sqlite"
+import { logger } from "@/src/_common/logger"
 import { drizzle } from "drizzle-orm/bun-sqlite"
 import config from "../../drizzle.config"
-import { logger } from "../common/logger"
 import * as schema from "./schema"
 
 const sqlite = new Database(config.dbCredentials.url, { create: true })

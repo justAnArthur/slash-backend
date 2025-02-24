@@ -1,12 +1,12 @@
+import { isDefined } from "@/src/_common/utils"
 import { sql } from "drizzle-orm"
-import { isDefined } from "../../common/utils"
 import {
   articles,
   tags,
   userFavorites,
   userFollows,
   users
-} from "../../db/schema"
+} from "../../db/schema.auth"
 import type { User } from "../users/users.schema"
 import type { Article } from "./articles.schema"
 

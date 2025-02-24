@@ -1,5 +1,5 @@
+import { isDefined, notFound, toSlug, unprocessable } from "@/src/_common/utils"
 import { and, desc, eq, like } from "drizzle-orm"
-import { isDefined, notFound, toSlug, unprocessable } from "../../common/utils"
 import db from "../../db/connection"
 import {
   articles,
@@ -8,7 +8,7 @@ import {
   userFavorites,
   userFollows,
   users
-} from "../../db/schema"
+} from "../../db/schema.auth"
 import { formatProfile } from "../profiles/profiles.utils"
 import { TagService } from "../tags/tags.service"
 import type {
