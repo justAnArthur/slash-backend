@@ -15,7 +15,14 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "sqlite",
     schema: authSchema
-  })
+  }),
+  advanced: {
+    defaultCookieAttributes: {
+      secure: true,
+      sameSite: "none",
+      partitioned: true
+    }
+  }
   // socialProviders: {
   //   /*
   //    * We're using Google and Github as our social provider,
