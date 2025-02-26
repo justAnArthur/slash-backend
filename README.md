@@ -1,18 +1,23 @@
 # Getting started
 
-Install dependencies
+#### Install dependencies
 
-> bun install
+```bun install```
 
-Setup
+#### Setup
 
-> bun migration:run
+```bun migration:run```
 
-Start local server
+#### Start local server
 
-> bun dev
+```bun dev```
 
-Run local tests
+#### Start ngrok tunnel
 
-> bun test
+>! Install and sign up for ngrok cli. [ngrok](https://ngrok.com/)
+
+```ngrok http {port}```
+
+>! Run in different terminal
+
 
