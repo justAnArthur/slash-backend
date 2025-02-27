@@ -1,15 +1,16 @@
+import userRoutes from "@/src/api/users/users.api"
 import { handleBetterAuthRoute } from "@/src/lib/auth/handle-route"
 import { authMiddleware } from "@/src/lib/auth/middleware"
 import corsConfig from "@/src/lib/cors.config"
 import loggerConfig from "@/src/lib/logger.config"
 import opentelemetryConfig from "@/src/lib/opentelemetry.config"
 import swaggerConfig from "@/src/lib/swagger.config"
-import userRoutes from "@/src/lib/user"
 import cors from "@elysiajs/cors"
 import { opentelemetry } from "@elysiajs/opentelemetry"
 import swagger from "@elysiajs/swagger"
 import { logger } from "@tqman/nice-logger"
 import { Elysia } from "elysia"
+
 export const app = new Elysia({
   serve: { hostname: Bun.env.HOSTNAME || "localhost" }
 })
