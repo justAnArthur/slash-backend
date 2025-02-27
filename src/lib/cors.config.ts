@@ -8,10 +8,10 @@ function validateOrigin(request: Request) {
 }
 
 export default {
-  origin: validateOrigin,
-  allowedHeaders: ["Content-Type", "Authorization"],
-  methods: ["POST", "GET", "OPTIONS", "PUT", "DELETE", "PATCH"],
-  exposeHeaders: ["Content-Length"],
-  maxAge: 600,
-  credentials: true
+  // origin: validateOrigin,
+  // allowedHeaders: ["Content-Type", "Authorization"],
+  // methods: ["POST", "GET", "OPTIONS", "PUT", "DELETE", "PATCH"],
+  // exposeHeaders: ["Content-Length"],
+  // maxAge: 600,
+  // credentials: true
 } satisfies Parameters<typeof cors>[0]
