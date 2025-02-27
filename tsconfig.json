@@ -1,5 +1,5 @@
 {
-  "extends": "@slash/tsconfig/base.json",
+  "extends": ["@slash/tsconfig/base.json"],
   "compilerOptions": {
     "paths": {
       "@/*": ["./*"]
