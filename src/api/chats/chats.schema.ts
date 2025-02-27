@@ -1,11 +1,14 @@
 import { user } from "@/src/db/schema.auth"
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
 
-export const chat = sqliteTable("chat", {
+export const privateChat = sqliteTable("private_chat", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => Bun.randomUUIDv7()),
-  userId: text("user_id")
+  user1Id: text("user1_id")
+    .notNull()
+    .references(() => user.id),
+  user2Id: text("user2_id")
     .notNull()
     .references(() => user.id)
 })
@@ -24,7 +27,7 @@ export const message = sqliteTable("message", {
     .references(() => user.id),
   chatId: text("chat_id")
     .notNull()
-    .references(() => chat.id, { onDelete: "cascade" }),
+    .references(() => privateChat.id, { onDelete: "cascade" }),
   content: text("content"),
   imageUrl: text("image_url")
 })
