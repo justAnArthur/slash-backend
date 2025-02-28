@@ -11,7 +11,6 @@ export default new Elysia({ prefix: "/chats" }).post(
       headers: context.request.headers
     })
 
-    console.log(context)
     const user2Id = session?.user.id as string
     const { user1Id } = context.body.body as { user1Id: string }
 
@@ -20,7 +19,6 @@ export default new Elysia({ prefix: "/chats" }).post(
         status: 400
       })
     }
-    console.log(user1Id, user2Id)
     try {
       const existingChat = await db
         .select()
