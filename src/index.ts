@@ -1,4 +1,5 @@
 import chatRoutes from "@/src/api/chats/chats.api"
+import messageRoutes from "@/src/api/chats/messages.api"
 import userRoutes from "@/src/api/users/users.api"
 import { handleBetterAuthRoute } from "@/src/lib/auth/handle-route"
 import { authMiddleware } from "@/src/lib/auth/middleware"
@@ -30,6 +31,7 @@ export const app = new Elysia({
       })
       .use(userRoutes)
       .use(chatRoutes)
+      .use(messageRoutes)
   )
   .listen(Bun.env.PORT || 3000)
 
