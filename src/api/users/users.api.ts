@@ -7,24 +7,32 @@ import type { Context } from "elysia"
 const PAGE_SIZE = 10
 
 export default new Elysia({ prefix: "/users" })
-  .get("/search", async (context: Context) => {
-    const { query } = context
-    const { q, page = 1 } = query
-    const session = await auth.api.getSession({
-      headers: context.request.headers
-    })
-    const currentUserId = session?.user.id as string
+  .get(
+    "/search",
+    async ({
+      query,
+      request
+    }: {
+      query: { q: string; page: number; pageSize: number }
+      request: Context["request"]
+    }) => {
+      const { q, page = 1, pageSize = 5 } = query
+      const session = await auth.api.getSession({
+        headers: request.headers
+      })
+      const currentUserId = session?.user.id as string
 
-    const offset = (Number(page) - 1) * PAGE_SIZE
+      const offset = (Number(page) - 1) * pageSize
 
-    // TODO: fetch last messages for existing chats
-    return db
-      .select({ id: user.id, name: user.name, image: user.image })
-      .from(user)
-      .where(and(like(user.name, `%${q}%`), ne(user.id, currentUserId)))
-      .limit(PAGE_SIZE)
-      .offset(offset)
-  })
+      // TODO: fetch last messages for existing chats
+      return db
+        .select({ id: user.id, name: user.name, image: user.image })
+        .from(user)
+        .where(and(like(user.name, `%${q}%`), ne(user.id, currentUserId)))
+        .limit(pageSize)
+        .offset(offset)
+    }
+  )
   .get(":id", async ({ params }: { params: { id: string } }) => {
     const { id } = params
     try {
