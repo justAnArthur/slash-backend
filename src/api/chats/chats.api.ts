@@ -1,7 +1,7 @@
 import db from "@/src/db/connection"
 import { user } from "@/src/db/schema.auth"
 import { auth } from "@/src/lib/auth"
-import { and, desc, eq, isNotNull, or } from "drizzle-orm"
+import { and, desc, eq, isNotNull, or, sql } from "drizzle-orm"
 import Elysia, { type Context } from "elysia"
 import { message, privateChat } from "./chats.schema"
 
@@ -74,12 +74,22 @@ export default new Elysia({ prefix: "/chats" })
       const currentUserId = session?.user.id as string
 
       const offset = (Number(page) - 1) * pageSize
+      const lastMessagesSubquery = db
+        .select({
+          chatId: message.chatId,
+          latestCreatedAt: sql<number>`MAX(${message.createdAt})`.as(
+            "latestCreatedAt"
+          )
+        })
+        .from(message)
+        .groupBy(message.chatId)
+        .as("lastMessages")
       return db
         .select({
           lastMessage: {
             content: message.content,
             createdAt: message.createdAt,
-            isImage: isNotNull(message.imageUrl),
+            type: message.type,
             isMe: eq(message.senderId, currentUserId)
           },
           id: eq(privateChat.user1Id, currentUserId)
@@ -89,7 +99,17 @@ export default new Elysia({ prefix: "/chats" })
           image: user.image
         })
         .from(privateChat)
-        .innerJoin(message, eq(message.chatId, privateChat.id))
+        .innerJoin(
+          lastMessagesSubquery,
+          eq(privateChat.id, lastMessagesSubquery.chatId)
+        )
+        .innerJoin(
+          message,
+          and(
+            eq(message.chatId, privateChat.id),
+            eq(message.createdAt, lastMessagesSubquery.latestCreatedAt)
+          )
+        )
         .leftJoin(
           user,
           eq(
@@ -106,7 +126,6 @@ export default new Elysia({ prefix: "/chats" })
           )
         )
         .orderBy(desc(message.createdAt))
-        .groupBy(privateChat.id, user.id)
         .limit(pageSize)
         .offset(offset)
     }

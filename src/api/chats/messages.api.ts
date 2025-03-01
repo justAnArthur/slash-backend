@@ -1,7 +1,7 @@
 import { db } from "@/src/db/connection"
 import { message } from "@/src/db/schema"
 import { auth } from "@/src/lib/auth"
-import { eq, sql } from "drizzle-orm"
+import { desc, eq, sql } from "drizzle-orm"
 import { Elysia } from "elysia"
 import type { Context } from "elysia"
 
@@ -32,12 +32,12 @@ export default new Elysia({ prefix: "messages" })
           createdAt: message.createdAt,
           senderId: message.senderId,
           content: message.content,
-          imageUrl: message.imageUrl,
+          type: message.type,
           isMe: eq(message.senderId, userId)
         })
         .from(message)
         .where(eq(message.chatId, chatId))
-        .orderBy(message.createdAt)
+        .orderBy(desc(message.createdAt))
         .limit(pageSize)
         .offset(offset)
 
@@ -66,6 +66,7 @@ export default new Elysia({ prefix: "messages" })
       body: {
         chatId: string
         content: string
+        type: "TEXT" | "IMAGE" | "LOCATION"
       }
       request: Context["request"]
     }) => {
@@ -73,7 +74,7 @@ export default new Elysia({ prefix: "messages" })
         headers: request.headers
       })
       const senderId = session?.user.id
-      const { chatId, content } = body
+      const { chatId, content, type } = body
       if (!content) {
         return {
           status: 500,
@@ -85,7 +86,8 @@ export default new Elysia({ prefix: "messages" })
         .values({
           chatId,
           senderId,
-          content
+          content,
+          type
         })
         .returning()
 

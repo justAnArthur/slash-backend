@@ -29,5 +29,5 @@ export const message = sqliteTable("message", {
     .notNull()
     .references(() => privateChat.id, { onDelete: "cascade" }),
   content: text("content"),
-  imageUrl: text("image_url")
+  type: text("type").notNull().default("TEXT")
 })
