@@ -39,3 +39,11 @@ export const auth = betterAuth({
   //   }
   // }
 })
+
+export async function checkAndGetSession(headers: Headers) {
+  const session = await auth.api.getSession({ headers })
+
+  if (!session) throw new Error("Unauthorized")
+
+  return session
+}
