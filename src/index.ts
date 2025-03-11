@@ -1,5 +1,5 @@
 import chatRoutes from "@/src/api/chats/chats.api"
-import messageRoutes from "@/src/api/chats/messages.api"
+import messageRoutes from "@/src/api/messages/messages.api"
 import userRoutes from "@/src/api/users/users.api"
 import { handleBetterAuthRoute } from "@/src/lib/auth/handle-route"
 import { authMiddleware } from "@/src/lib/auth/middleware"
@@ -25,9 +25,7 @@ export const app = new Elysia({
   .group("", { beforeHandle: authMiddleware }, (app) =>
     app
       .get("/secured", () => "Secured 🔗🦊", {
-        detail: {
-          description: "This is a secured route"
-        }
+        detail: { description: "This is a secured route" }
       })
       .use(userRoutes)
       .use(chatRoutes)
