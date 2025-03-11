@@ -1,3 +1,14 @@
+CREATE TABLE `message` (
+	`id` text PRIMARY KEY NOT NULL,
+	`createdAt` integer NOT NULL,
+	`sender_id` text NOT NULL,
+	`chat_id` text NOT NULL,
+	`content` text,
+	`type` text DEFAULT 'TEXT' NOT NULL,
+	FOREIGN KEY (`sender_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`chat_id`) REFERENCES `chat`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
 CREATE TABLE `account` (
 	`id` text PRIMARY KEY NOT NULL,
 	`userId` text NOT NULL,
@@ -45,23 +56,20 @@ CREATE TABLE `verification` (
 	`updatedAt` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE `message` (
+CREATE TABLE `chat` (
 	`id` text PRIMARY KEY NOT NULL,
-	`createdAt` integer NOT NULL,
-	`sender_id` text NOT NULL,
-	`chat_id` text NOT NULL,
-	`content` text,
-	`image_url` text,
-	FOREIGN KEY (`sender_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action,
-	FOREIGN KEY (`chat_id`) REFERENCES `private_chat`(`id`) ON UPDATE no action ON DELETE cascade
+	`type` text DEFAULT 'private' NOT NULL,
+	`name` text,
+	`createdAt` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE `private_chat` (
-	`id` text PRIMARY KEY NOT NULL,
-	`user1_id` text NOT NULL,
-	`user2_id` text NOT NULL,
-	FOREIGN KEY (`user1_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action,
-	FOREIGN KEY (`user2_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
+CREATE TABLE `chat_user` (
+	`chat_id` text NOT NULL,
+	`user_id` text NOT NULL,
+	`role` text DEFAULT 'member' NOT NULL,
+	PRIMARY KEY(`chat_id`, `user_id`),
+	FOREIGN KEY (`chat_id`) REFERENCES `chat`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `user_email_unique` ON `user` (`email`);
