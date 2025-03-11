@@ -1,7 +1,7 @@
 import db from "@/src/db/connection"
 import { user } from "@/src/db/schema.auth"
 import { checkAndGetSession } from "@/src/lib/auth"
-import { and, eq, like, ne } from "drizzle-orm"
+import { and, eq, like, ne, sql } from "drizzle-orm"
 import type { Context } from "elysia"
 import Elysia from "elysia"
 
@@ -15,12 +15,11 @@ export default new Elysia({ prefix: "/users" })
       query: { q: string; page: number; pageSize: number }
       request: Context["request"]
     }) => {
-      const { q, page = 1, pageSize = 5 } = query
-
       const session = await checkAndGetSession(request.headers)
 
-      const currentUserId = session.user.id as string
+      const currentUserId = session.user.id
 
+      const { q, page = 1, pageSize = 5 } = query
       const offset = (Number(page) - 1) * pageSize
 
       // TODO: fetch last messages for existing chats
@@ -32,12 +31,18 @@ export default new Elysia({ prefix: "/users" })
           email: user.email
         })
         .from(user)
-        .where(and(like(user.name, `%${q}%`), ne(user.id, currentUserId)))
+        .where(
+          and(
+            // @ts-ignore
+            like(sql`lower(${user.name})`, `%${q.toLowerCase()}%`),
+            ne(user.id, currentUserId)
+          )
+        )
         .limit(pageSize)
         .offset(offset)
     }
   )
-  .get(":id", async ({ params }: { params: { id: string } }) => {
+  .get("/:id", async ({ params }: { params: { id: string } }) => {
     const { id } = params
     try {
       const [userToReturn] = await db
