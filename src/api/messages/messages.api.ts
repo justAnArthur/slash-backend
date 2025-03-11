@@ -1,15 +1,15 @@
 import { db } from "@/src/db/connection"
 import { message } from "@/src/db/schema"
-import { auth } from "@/src/lib/auth"
+import { checkAndGetSession } from "@/src/lib/auth"
 import { desc, eq, sql } from "drizzle-orm"
-import { Elysia } from "elysia"
 import type { Context } from "elysia"
+import { Elysia } from "elysia"
 
 export default new Elysia({ prefix: "messages" })
   .get(
     "/:chatId",
     async ({
-      params,
+      params: { chatId },
       query,
       request
     }: {
@@ -17,13 +17,10 @@ export default new Elysia({ prefix: "messages" })
       query: { page: number; pageSize: number }
       request: Context["request"]
     }) => {
-      const session = await auth.api.getSession({
-        headers: request.headers
-      })
-      const userId = session?.user.id as string
+      const session = await checkAndGetSession(request.headers)
+      const userId = session.user.id
 
-      const { chatId } = params
-      const { page = 1, pageSize = 20 } = query // Default values
+      const { page = 1, pageSize = 20 } = query
       const offset = (page - 1) * pageSize
 
       const messages = await db
@@ -58,11 +55,13 @@ export default new Elysia({ prefix: "messages" })
     }
   )
   .post(
-    "/",
+    "/:chatId",
     async ({
-      body,
+      params: { chatId },
+      body: { content, type },
       request
     }: {
+      params: { chatId: string }
       body: {
         chatId: string
         content: string
@@ -70,17 +69,11 @@ export default new Elysia({ prefix: "messages" })
       }
       request: Context["request"]
     }) => {
-      const session = await auth.api.getSession({
-        headers: request.headers
-      })
-      const senderId = session?.user.id
-      const { chatId, content, type } = body
-      if (!content) {
-        return {
-          status: 500,
-          message: "Internal server error"
-        }
-      }
+      const session = await checkAndGetSession(request.headers)
+      const senderId = session.user.id
+
+      if (!content) throw new Error("Content is required")
+
       const [newMessage] = await db
         .insert(message)
         .values({
