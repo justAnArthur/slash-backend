@@ -1,5 +1,5 @@
 import { db } from "@/src/db/connection"
-import { message } from "@/src/db/schema"
+import { message, user } from "@/src/db/schema"
 import { checkAndGetSession } from "@/src/lib/auth"
 import { desc, eq, sql } from "drizzle-orm"
 import type { Context } from "elysia"
@@ -30,9 +30,12 @@ export default new Elysia({ prefix: "messages" })
           senderId: message.senderId,
           content: message.content,
           type: message.type,
-          isMe: eq(message.senderId, userId)
+          name: user.name,
+          isMe: eq(message.senderId, userId),
+          image: user.image
         })
         .from(message)
+        .innerJoin(user, eq(user.id, message.senderId))
         .where(eq(message.chatId, chatId))
         .orderBy(desc(message.createdAt))
         .limit(pageSize)

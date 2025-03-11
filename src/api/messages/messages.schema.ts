@@ -1,4 +1,4 @@
-import { privateChat } from "@/src/api/chats/chats.schema"
+import { chat } from "@/src/api/chats/chats.schema"
 import { user } from "@/src/db/schema.auth"
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
 
@@ -16,7 +16,10 @@ export const message = sqliteTable("message", {
     .references(() => user.id),
   chatId: text("chat_id")
     .notNull()
-    .references(() => privateChat.id, { onDelete: "cascade" }),
+    .references(() => chat.id, { onDelete: "cascade" }),
   content: text("content"),
   type: text("type").notNull().default("TEXT")
 })
+
+export type Message = typeof message.$inferSelect
+export type NewMessage = typeof message.$inferInsert
