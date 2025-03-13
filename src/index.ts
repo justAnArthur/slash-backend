@@ -8,6 +8,7 @@ import loggerConfig from "@/src/lib/logger.config"
 import opentelemetryConfig from "@/src/lib/opentelemetry.config"
 import swaggerConfig from "@/src/lib/swagger.config"
 import cors from "@elysiajs/cors"
+import { treaty } from "@elysiajs/eden"
 import { opentelemetry } from "@elysiajs/opentelemetry"
 import swagger from "@elysiajs/swagger"
 import { logger } from "@tqman/nice-logger"
@@ -22,7 +23,7 @@ export const app = new Elysia({
   .use(cors(corsConfig))
   .get("/", () => "Hello Elysia! 🦊")
   .all("/api/auth/*", handleBetterAuthRoute)
-  .group("", { beforeHandle: authMiddleware }, (app) =>
+  .guard({ beforeHandle: authMiddleware }, (app) =>
     app
       .get("/secured", () => "Secured 🔗🦊", {
         detail: { description: "This is a secured route" }
@@ -35,6 +36,7 @@ export const app = new Elysia({
 
 export type App = typeof app
 
-console.log(
+const test = treaty<App>("")
+test.console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
 )

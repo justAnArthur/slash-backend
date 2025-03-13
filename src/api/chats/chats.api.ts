@@ -2,7 +2,7 @@ import { message } from "@/src/api/messages/messages.schema"
 import db from "@/src/db/connection"
 import { user } from "@/src/db/schema.auth"
 import { checkAndGetSession } from "@/src/lib/auth"
-import { and, count, desc, eq, exists, inArray, ne, or, sql } from "drizzle-orm"
+import { and, count, desc, eq, exists, inArray, ne, sql } from "drizzle-orm"
 import Elysia, { type Context } from "elysia"
 import { chat, chatUser } from "./chats.schema"
 
@@ -10,7 +10,9 @@ interface CreateChatRequest {
   userIds: string[]
   name?: string
 }
+
 type ChatType = "private" | "group"
+
 export default new Elysia({ prefix: "/chats" })
   .post(
     "/",
@@ -179,14 +181,19 @@ export default new Elysia({ prefix: "/chats" })
           .where(eq(chat.id, chatId))
           .limit(1)
 
-        if (!chatDetails) {
-          throw new Error("Chat not found")
-        }
+        if (!chatDetails) throw new Error("Chat not found")
 
-        return { chat: { ...chatDetails, participants } }
+        return { chat: { ...chatDetails, participants } as ChatResponse }
       } catch (error) {
         console.error(error)
         return { error }
       }
     }
   )
+
+export type ChatResponse = {
+  name: string
+  image: string | null
+  type: string
+  participants: { userId: string; name: string; image: string | null }[]
+}

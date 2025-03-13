@@ -90,3 +90,21 @@ export default new Elysia({ prefix: "messages" })
       return newMessage
     }
   )
+
+export type MessageResponse = {
+  id: string
+  content: string | null
+  type: "IMAGE" | "TEXT" | "LOCATION"
+  senderId: string
+  createdAt: Date
+}
+
+export type PaginatedMessageResponse = {
+  messages: MessageResponse[]
+  pagination: {
+    total: number
+    page: number
+    pageSize: number
+    totalPages: number
+  }
+}
