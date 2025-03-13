@@ -1,3 +1,3 @@
 export * from "./schema.auth"
 export * from "../api/chats/chats.schema"
-export { message } from "@/src/api/messages/messages.schema"
+export * from "../api/messages/messages.schema"
