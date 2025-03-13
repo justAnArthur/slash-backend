@@ -8,6 +8,13 @@
       "when": 1741720025291,
       "tag": "0000_heavy_professor_monster",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1741872188796,
+      "tag": "0001_graceful_red_wolf",
+      "breakpoints": true
     }
   ]
 }

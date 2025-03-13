@@ -1,7 +1,8 @@
+import { insertFile } from "@/src/api/file/files.api"
 import { db } from "@/src/db/connection"
-import { message, user } from "@/src/db/schema"
+import { type Message, message, messageAttachment, user } from "@/src/db/schema"
 import { checkAndGetSession } from "@/src/lib/auth"
-import { desc, eq, sql } from "drizzle-orm"
+import { desc, eq, inArray, sql } from "drizzle-orm"
 import type { Context } from "elysia"
 import { Elysia } from "elysia"
 
@@ -41,13 +42,41 @@ export default new Elysia({ prefix: "messages" })
         .limit(pageSize)
         .offset(offset)
 
+      const messageIds = messages.map((m) => m.id)
+
+      const attachmentRecords = await db
+        .select({
+          id: messageAttachment.id,
+          messageId: messageAttachment.messageId,
+          IMAGEFileId: messageAttachment.IMAGEFileId,
+          JSON: messageAttachment.JSON
+        })
+        .from(messageAttachment)
+        .where(inArray(messageAttachment.messageId, messageIds))
+
+      const attachmentsByMessageId = attachmentRecords.reduce(
+        (acc, att) => {
+          if (!acc[att.messageId]) {
+            acc[att.messageId] = []
+          }
+          acc[att.messageId].push(att)
+          return acc
+        },
+        {} as Record<string, typeof attachmentRecords>
+      )
+
+      const messagesWithAttachments = messages.map((msg) => ({
+        ...msg,
+        attachments: attachmentsByMessageId[msg.id] || []
+      }))
+
       const totalMessages = await db
         .select({ count: sql<number>`COUNT(*)` })
         .from(message)
         .where(eq(message.chatId, chatId))
 
       return {
-        messages,
+        messages: messagesWithAttachments,
         pagination: {
           total: totalMessages[0]?.count || 0,
           page: page,
@@ -61,42 +90,84 @@ export default new Elysia({ prefix: "messages" })
     "/:chatId",
     async ({
       params: { chatId },
-      body: { content, type },
       request
     }: {
       params: { chatId: string }
-      body: {
-        chatId: string
-        content: string
-        type: "TEXT" | "IMAGE" | "LOCATION"
-      }
       request: Context["request"]
     }) => {
       const session = await checkAndGetSession(request.headers)
       const senderId = session.user.id
 
-      if (!content) throw new Error("Content is required")
+      const formData = await request.formData()
+      const type = formData.get("type")
+      const _content = formData.get("content")
 
-      const [newMessage] = await db
+      console.log([...formData.keys()])
+      console.log("insertedMessage", _content)
+
+      if (!_content) throw new Error("Content is required")
+
+      const messageValues = {
+        chatId,
+        senderId,
+        type,
+        content: type === MessageType.TEXT ? _content.toString() : null
+      } as Message
+
+      const [insertedMessage] = await db
         .insert(message)
-        .values({
-          chatId,
-          senderId,
-          content,
-          type
-        })
+        .values(messageValues)
         .returning()
 
-      return newMessage
+      switch (type) {
+        case MessageType.IMAGE: {
+          const file = await insertFile(_content as File)
+          await db.insert(messageAttachment).values({
+            messageId: insertedMessage.id,
+            IMAGEFileId: file.id
+          })
+          break
+        }
+        case MessageType.LOCATION: {
+          console.log("Location", {
+            messageId: insertedMessage.id,
+            JSON: String(_content)
+          })
+          await db.insert(messageAttachment).values({
+            messageId: insertedMessage.id,
+            JSON: String(_content)
+          })
+          break
+        }
+      }
+
+      return insertedMessage
     }
   )
+
+const MessageType = {
+  TEXT: "TEXT",
+  IMAGE: "IMAGE",
+  LOCATION: "LOCATION"
+} as const
 
 export type MessageResponse = {
   id: string
   content: string | null
-  type: "IMAGE" | "TEXT" | "LOCATION"
+  type: keyof typeof MessageType
   senderId: string
-  createdAt: Date
+  createdAt: string
+  name: string
+  isMe: boolean
+  image: any
+  attachments: MessageAttachmentResponse[]
+}
+
+export type MessageAttachmentResponse = {
+  id: string
+  messageId: string
+  IMAGEFileId?: string | null
+  JSON?: string | null
 }
 
 export type PaginatedMessageResponse = {

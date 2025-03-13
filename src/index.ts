@@ -1,4 +1,5 @@
 import chatRoutes from "@/src/api/chats/chats.api"
+import fileRoutes from "@/src/api/file/files.api"
 import messageRoutes from "@/src/api/messages/messages.api"
 import userRoutes from "@/src/api/users/users.api"
 import { handleBetterAuthRoute } from "@/src/lib/auth/handle-route"
@@ -30,6 +31,7 @@ export const app = new Elysia({
       .use(userRoutes)
       .use(chatRoutes)
       .use(messageRoutes)
+      .use(fileRoutes)
   )
   .listen(Bun.env.PORT || 3000)
 
