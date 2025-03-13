@@ -1,6 +1,16 @@
 import { chat } from "@/src/api/chats/chats.schema"
+import { file } from "@/src/db/schema"
 import { user } from "@/src/db/schema.auth"
+import { relations } from "drizzle-orm/relations"
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
+
+export const MESSAGE_STORING_TYPE = {
+  TEXT: "TEXT",
+  IMAGE: "IMAGE",
+  JSON: "JSON"
+} as const
+
+export type Message = typeof message.$inferSelect
 
 export const message = sqliteTable("message", {
   id: text("id")
@@ -17,9 +27,28 @@ export const message = sqliteTable("message", {
   chatId: text("chat_id")
     .notNull()
     .references(() => chat.id, { onDelete: "cascade" }),
-  content: text("content"),
-  type: text("type").notNull().default("TEXT")
+  type: text("type").notNull().default(MESSAGE_STORING_TYPE.TEXT),
+  content: text("content")
 })
 
-export type Message = typeof message.$inferSelect
-export type NewMessage = typeof message.$inferInsert
+export const messageRelations = relations(message, ({ one, many }) => ({
+  sender: one(user, {
+    fields: [message.senderId],
+    references: [user.id]
+  }),
+  attachments: many(messageAttachment)
+}))
+
+export const messageAttachment = sqliteTable("message_attachment", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => Bun.randomUUIDv7()),
+  messageId: text("message_id")
+    .notNull()
+    .references(() => message.id, { onDelete: "cascade" }),
+  [`${MESSAGE_STORING_TYPE.IMAGE}FileId`]: text("image_file_id").references(
+    () => file.id,
+    { onDelete: "set null" }
+  ),
+  [`${MESSAGE_STORING_TYPE.JSON}`]: text("json")
+})

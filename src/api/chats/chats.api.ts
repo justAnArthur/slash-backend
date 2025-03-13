@@ -172,6 +172,7 @@ export default new Elysia({ prefix: "/chats" })
 
         const [chatDetails] = await db
           .select({
+            id: chat.id,
             type: chat.type,
             name: chat.name
           })
@@ -192,6 +193,7 @@ export default new Elysia({ prefix: "/chats" })
   )
 
 export type ChatResponse = {
+  id: string
   name: string
   image: string | null
   type: string
