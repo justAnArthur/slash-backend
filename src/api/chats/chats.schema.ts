@@ -15,6 +15,7 @@ export const chat = sqliteTable("chat", {
     .notNull()
     .$defaultFn(() => new Date())
 })
+
 export const chatUser = sqliteTable(
   "chat_user",
   {
