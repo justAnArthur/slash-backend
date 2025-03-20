@@ -13,6 +13,7 @@ import { opentelemetry } from "@elysiajs/opentelemetry"
 import swagger from "@elysiajs/swagger"
 import { logger } from "@tqman/nice-logger"
 import { Elysia } from "elysia"
+import { wsHandler } from "@/src/api/ws"
 
 export const app = new Elysia({
   serve: { hostname: Bun.env.HOSTNAME || "localhost" }
@@ -23,6 +24,7 @@ export const app = new Elysia({
   .use(cors(corsConfig))
   .get("/", () => "Hello Elysia! 🦊")
   .all("/api/auth/*", handleBetterAuthRoute)
+  .use(wsHandler)
   .guard({ beforeHandle: authMiddleware }, (app) =>
     app
       .get("/secured", () => "Secured 🔗🦊", {
