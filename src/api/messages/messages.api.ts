@@ -5,6 +5,7 @@ import { checkAndGetSession } from "@/src/lib/auth"
 import { desc, eq, inArray, sql } from "drizzle-orm"
 import type { Context } from "elysia"
 import { Elysia } from "elysia"
+import { broadcastMessage } from "@/src/lib/chat.state"
 
 export default new Elysia({ prefix: "messages" })
   .get(
@@ -32,7 +33,6 @@ export default new Elysia({ prefix: "messages" })
           content: message.content,
           type: message.type,
           name: user.name,
-          isMe: eq(message.senderId, userId),
           image: user.image
         })
         .from(message)
@@ -118,14 +118,22 @@ export default new Elysia({ prefix: "messages" })
         .insert(message)
         .values(messageValues)
         .returning()
-
+      let attachments: MessageAttachmentResponse[] = []
       switch (type) {
         case MessageType.IMAGE: {
           const file = await insertFile(_content as File)
-          await db.insert(messageAttachment).values({
-            messageId: insertedMessage.id,
-            IMAGEFileId: file.id
-          })
+          const [attachment] = await db
+            .insert(messageAttachment)
+            .values({
+              messageId: insertedMessage.id,
+              IMAGEFileId: file.id
+            })
+            .returning({
+              id: messageAttachment.id,
+              messageId: messageAttachment.messageId,
+              IMAGEFileId: messageAttachment.IMAGEFileId
+            })
+          attachments.push(attachment)
           break
         }
         case MessageType.LOCATION: {
@@ -133,15 +141,38 @@ export default new Elysia({ prefix: "messages" })
             messageId: insertedMessage.id,
             JSON: String(_content)
           })
-          await db.insert(messageAttachment).values({
-            messageId: insertedMessage.id,
-            JSON: String(_content)
-          })
+          const [attachment] = await db
+            .insert(messageAttachment)
+            .values({
+              messageId: insertedMessage.id,
+              JSON: String(_content)
+            })
+            .returning({
+              id: messageAttachment.id,
+              messageId: messageAttachment.messageId,
+              JSON: messageAttachment.JSON
+            })
+          attachments.push(attachment)
           break
         }
       }
+      const [sender] = await db
+        .select({
+          name: user.name,
+          image: user.image
+        })
+        .from(user)
+        .where(eq(user.id, senderId))
+        .limit(1)
 
-      return insertedMessage
+      const fullMessage: MessageResponse = {
+        ...insertedMessage,
+        attachments,
+        name: sender.name,
+        image: sender.image
+      }
+      broadcastMessage(chatId, fullMessage)
+      return fullMessage
     }
   )
 
@@ -158,7 +189,6 @@ export type MessageResponse = {
   senderId: string
   createdAt: string
   name: string
-  isMe: boolean
   image: any
   attachments: MessageAttachmentResponse[]
 }
