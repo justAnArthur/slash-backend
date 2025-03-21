@@ -77,7 +77,7 @@ export default new Elysia({ prefix: "/chats" })
           { chatId: newChat.id, userId, role: "admin" as const }
         ])
 
-        subscribeUsersToChat(newChat.id, userIds)
+        subscribeUsersToChat(newChat.id, [...userIds, userId])
         return { chatId: newChat.id }
       } catch (error) {
         console.error(error)
