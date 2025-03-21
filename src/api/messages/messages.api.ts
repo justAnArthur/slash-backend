@@ -117,7 +117,13 @@ export default new Elysia({ prefix: "messages" })
       const [insertedMessage] = await db
         .insert(message)
         .values(messageValues)
-        .returning()
+        .returning({
+          id: message.id,
+          type: message.type,
+          content: message.content,
+          senderId: message.senderId,
+          createdAt: message.createdAt
+        })
       let attachments: MessageAttachmentResponse[] = []
       switch (type) {
         case MessageType.IMAGE: {
@@ -164,7 +170,7 @@ export default new Elysia({ prefix: "messages" })
         .from(user)
         .where(eq(user.id, senderId))
         .limit(1)
-
+      // @ts-ignore
       const fullMessage: MessageResponse = {
         ...insertedMessage,
         attachments,
