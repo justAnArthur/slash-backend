@@ -5,6 +5,7 @@ import { checkAndGetSession } from "@/src/lib/auth"
 import { and, count, desc, eq, exists, inArray, ne, sql } from "drizzle-orm"
 import Elysia, { type Context } from "elysia"
 import { chat, chatUser } from "./chats.schema"
+import type { MessageResponse } from "../messages/messages.api"
 
 interface CreateChatRequest {
   userIds: string[]
@@ -112,19 +113,21 @@ export default new Elysia({ prefix: "/chats" })
           id: chat.id,
           type: chat.type,
           name: sql`
-            CASE WHEN ${chat.type} = 'private' THEN (
-              SELECT ${user.name}
-              FROM ${user}
-              INNER JOIN ${chatUser} ON ${user.id} = ${chatUser.userId}
-              WHERE ${chatUser.chatId} = ${chat.id}
-                AND ${chatUser.userId} != ${userId}
-            ) ELSE ${chat.name} END
-          `.as("name"),
+      CASE WHEN ${chat.type} = 'private' THEN (
+        SELECT ${user.name}
+        FROM ${user}
+        INNER JOIN ${chatUser} ON ${user.id} = ${chatUser.userId}
+        WHERE ${chatUser.chatId} = ${chat.id}
+          AND ${chatUser.userId} != ${userId}
+      ) ELSE ${chat.name} END
+    `.as("name"),
           lastMessage: {
             content: message.content,
             createdAt: message.createdAt,
             type: message.type,
-            isMe: eq(message.senderId, userId)
+            senderId: message.senderId,
+            name: user.name,
+            image: user.image
           }
         })
         .from(chat)
@@ -140,6 +143,7 @@ export default new Elysia({ prefix: "/chats" })
             eq(message.createdAt, lastMessagesSubquery.latestCreatedAt)
           )
         )
+        .leftJoin(user, eq(message.senderId, user.id))
         .where(eq(chatUser.userId, userId))
         .orderBy(desc(message.createdAt))
         .limit(pageSize)
@@ -191,11 +195,83 @@ export default new Elysia({ prefix: "/chats" })
       }
     }
   )
+  .get(
+    "/fetch/:id",
+    async ({
+      params,
+      request
+    }: {
+      params: { id: string }
+      request: Context["request"]
+    }) => {
+      const { id } = params
+      const session = await checkAndGetSession(request.headers)
+      const userId = session.user.id
+
+      const lastMessagesSubquery = db
+        .select({
+          chatId: message.chatId,
+          latestCreatedAt: sql<number>`MAX(${message.createdAt})`.as(
+            "latestCreatedAt"
+          )
+        })
+        .from(message)
+        .where(eq(message.chatId, id))
+        .groupBy(message.chatId)
+        .as("lastMessages")
+
+      return db
+        .select({
+          id: chat.id,
+          type: chat.type,
+          name: sql`
+          CASE WHEN ${chat.type} = 'private' THEN (
+            SELECT ${user.name}
+            FROM ${user}
+            INNER JOIN ${chatUser} ON ${user.id} = ${chatUser.userId}
+            WHERE ${chatUser.chatId} = ${chat.id}
+              AND ${chatUser.userId} != ${userId}
+          ) ELSE ${chat.name} END
+        `.as("name"),
+          lastMessage: {
+            content: message.content,
+            createdAt: message.createdAt,
+            type: message.type,
+            senderId: message.senderId,
+            name: user.name,
+            image: user.image
+          }
+        })
+        .from(chat)
+        .innerJoin(chatUser, eq(chat.id, chatUser.chatId))
+        .leftJoin(
+          lastMessagesSubquery,
+          eq(chat.id, lastMessagesSubquery.chatId)
+        )
+        .leftJoin(
+          message,
+          and(
+            eq(message.chatId, chat.id),
+            eq(message.createdAt, lastMessagesSubquery.latestCreatedAt)
+          )
+        )
+        .leftJoin(user, eq(message.senderId, user.id))
+        .where(and(eq(chatUser.userId, userId), eq(chat.id, id)))
+        .limit(1)
+    }
+  )
 
 export type ChatResponse = {
   id: string
   name: string
   image: string | null
-  type: string
+  type: "group" | "private"
   participants: { userId: string; name: string; image: string | null }[]
+}
+export type ChatListResponse = {
+  id: string
+  name: string
+  image: string | null
+  type: "group" | "private"
+  lastMessage: MessageResponse
 }
