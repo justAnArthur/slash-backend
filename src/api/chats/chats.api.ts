@@ -5,8 +5,11 @@ import { checkAndGetSession } from "@/src/lib/auth"
 import { and, count, desc, eq, exists, inArray, ne, sql } from "drizzle-orm"
 import Elysia, { type Context } from "elysia"
 import { chat, chatUser } from "./chats.schema"
-import type { MessageResponse } from "../messages/messages.api"
-import { subscribeUsersToChat } from "@/src/lib/chat.state"
+import type {
+  MessageAttachmentResponse,
+  MessageResponse
+} from "../messages/messages.api"
+import { broadcastMessage, subscribeUsersToChat } from "@/src/lib/chat.state"
 
 interface CreateChatRequest {
   userIds: string[]
@@ -299,12 +302,24 @@ export default new Elysia({ prefix: "/chats" })
               and(eq(chatUser.chatId, chatId), eq(chatUser.userId, userId))
             )
           //TODO: //Add system message
-          const leaveMessage = {
-            chatId,
-            content: `${session.user.name} has left the chat.`,
-            type: "SYSTEM",
-            senderId: userId
+          const [systemMessage] = await db
+            .insert(message)
+            .values({
+              chatId,
+              senderId: "SYSTEM",
+              type: "TEXT" as const,
+              content: `${session.user.name} has left the chat.`
+            })
+            .returning()
+
+          // @ts-ignore
+          const fullMessage: MessageResponse = {
+            ...systemMessage,
+            attachments: [] as MessageAttachmentResponse[],
+            name: "Info",
+            image: null
           }
+          broadcastMessage(chatId, fullMessage)
         }
         //TODO: add websocket chat deletion notificaiton
         // Optionally, handle WebSocket notifications here if needed

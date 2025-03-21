@@ -31,7 +31,7 @@ export default new Elysia({ prefix: "messages" })
           image: user.image
         })
         .from(message)
-        .innerJoin(user, eq(user.id, message.senderId))
+        .leftJoin(user, eq(user.id, message.senderId))
         .where(eq(message.chatId, chatId))
         .orderBy(desc(message.createdAt))
         .limit(pageSize)
