@@ -262,6 +262,61 @@ export default new Elysia({ prefix: "/chats" })
         .limit(1)
     }
   )
+  .delete(
+    "/:id",
+    async ({
+      params,
+      request
+    }: {
+      params: { id: string }
+      request: Context["request"]
+    }) => {
+      try {
+        const chatId = params.id
+        const session = await checkAndGetSession(request.headers)
+        const userId = session.user.id as string
+
+        const [chatDetails] = await db
+          .select({ type: chat.type, role: chatUser.role })
+          .from(chat)
+          .innerJoin(chatUser, eq(chat.id, chatUser.chatId))
+          .where(and(eq(chatUser.userId, userId), eq(chatUser.chatId, chatId)))
+
+          .limit(1)
+        if (!chatDetails) {
+          return {
+            error: "Chat not found or you do not have permission to delete it."
+          }
+        }
+        const { type, role } = chatDetails
+        console.log(type, role)
+        if (type === "private" || role === "admin") {
+          await db.delete(chat).where(eq(chat.id, chatId))
+        } else if (type === "group") {
+          await db
+            .delete(chatUser)
+            .where(
+              and(eq(chatUser.chatId, chatId), eq(chatUser.userId, userId))
+            )
+          //TODO: //Add system message
+          const leaveMessage = {
+            chatId,
+            content: `${session.user.name} has left the chat.`,
+            type: "SYSTEM",
+            senderId: userId
+          }
+        }
+        //TODO: add websocket chat deletion notificaiton
+        // Optionally, handle WebSocket notifications here if needed
+        // Example: broadcastChatDeletion(chatId);
+
+        return { success: true, message: "Chat deleted successfully." }
+      } catch (error) {
+        console.error(error)
+        return { error: "An error occurred while deleting the chat." }
+      }
+    }
+  )
 
 export type ChatResponse = {
   id: string
