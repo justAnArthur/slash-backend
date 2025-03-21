@@ -9,7 +9,12 @@ import type {
   MessageAttachmentResponse,
   MessageResponse
 } from "../messages/messages.api"
-import { broadcastMessage, subscribeUsersToChat } from "@/src/lib/chat.state"
+import {
+  broadcastMessage,
+  subscribeUsersToChat,
+  unsubscribeAllFromChat,
+  unsubscribeUserFromChat
+} from "@/src/lib/chat.state"
 
 interface CreateChatRequest {
   userIds: string[]
@@ -292,16 +297,15 @@ export default new Elysia({ prefix: "/chats" })
           }
         }
         const { type, role } = chatDetails
-        console.log(type, role)
         if (type === "private" || role === "admin") {
           await db.delete(chat).where(eq(chat.id, chatId))
+          unsubscribeAllFromChat(chatId)
         } else if (type === "group") {
           await db
             .delete(chatUser)
             .where(
               and(eq(chatUser.chatId, chatId), eq(chatUser.userId, userId))
             )
-          //TODO: //Add system message
           const [systemMessage] = await db
             .insert(message)
             .values({
@@ -319,6 +323,7 @@ export default new Elysia({ prefix: "/chats" })
             name: "Info",
             image: null
           }
+          unsubscribeUserFromChat(chatId, userId)
           broadcastMessage(chatId, fullMessage)
         }
         //TODO: add websocket chat deletion notificaiton

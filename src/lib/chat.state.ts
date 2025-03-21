@@ -33,3 +33,33 @@ export function subscribeUsersToChat(chatId: string, userIds: string[]) {
     }
   }
 }
+export function unsubscribeUserFromChat(chatId: string, userId: string) {
+  const subscribers = chatSubscriptions.get(chatId)
+  if (!subscribers) return
+
+  for (const ws of subscribers) {
+    if (ws.data.query.id === userId) {
+      subscribers.delete(ws)
+      break
+    }
+  }
+
+  if (subscribers.size === 0) {
+    chatSubscriptions.delete(chatId)
+  }
+}
+
+export function unsubscribeAllFromChat(chatId: string) {
+  const subscribers = chatSubscriptions.get(chatId)
+  if (!subscribers) return
+
+  const payload = JSON.stringify({
+    type: "delete_chat",
+    chatId
+  })
+
+  for (const ws of subscribers) {
+    ws.send(payload)
+  }
+  chatSubscriptions.delete(chatId)
+}

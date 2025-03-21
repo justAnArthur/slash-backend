@@ -22,7 +22,6 @@ export default new Elysia({ prefix: "/users" })
       const { q, page = 1, pageSize = 5 } = query
       const offset = (Number(page) - 1) * pageSize
 
-      // TODO: fetch last messages for existing chats
       return db
         .select({
           id: user.id,
