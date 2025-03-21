@@ -6,6 +6,7 @@ import { and, count, desc, eq, exists, inArray, ne, sql } from "drizzle-orm"
 import Elysia, { type Context } from "elysia"
 import { chat, chatUser } from "./chats.schema"
 import type { MessageResponse } from "../messages/messages.api"
+import { subscribeUsersToChat } from "@/src/lib/chat.state"
 
 interface CreateChatRequest {
   userIds: string[]
@@ -76,6 +77,7 @@ export default new Elysia({ prefix: "/chats" })
           { chatId: newChat.id, userId, role: "admin" as const }
         ])
 
+        subscribeUsersToChat(newChat.id, userIds)
         return { chatId: newChat.id }
       } catch (error) {
         console.error(error)
