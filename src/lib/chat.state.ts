@@ -19,3 +19,17 @@ export function broadcastMessage(chatId: string, message: MessageResponse) {
     ws.send(payload)
   }
 }
+export function subscribeUsersToChat(chatId: string, userIds: string[]) {
+  if (!chatSubscriptions.has(chatId)) {
+    chatSubscriptions.set(chatId, new Set())
+  }
+  const chatSubscribers = chatSubscriptions.get(chatId)!
+
+  for (const [_, subscribers] of chatSubscriptions) {
+    for (const ws of subscribers) {
+      if (userIds.includes(ws.data.query.id)) {
+        chatSubscribers.add(ws)
+      }
+    }
+  }
+}

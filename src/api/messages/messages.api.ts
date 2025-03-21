@@ -12,16 +12,11 @@ export default new Elysia({ prefix: "messages" })
     "/:chatId",
     async ({
       params: { chatId },
-      query,
-      request
+      query
     }: {
       params: { chatId: string }
       query: { page: number; pageSize: number }
-      request: Context["request"]
     }) => {
-      const session = await checkAndGetSession(request.headers)
-      const userId = session.user.id
-
       const { page = 1, pageSize = 20 } = query
       const offset = (page - 1) * pageSize
 
@@ -42,17 +37,20 @@ export default new Elysia({ prefix: "messages" })
         .limit(pageSize)
         .offset(offset)
 
-      const messageIds = messages.map((m) => m.id)
+      const messageIds = messages.length > 0 ? messages.map((m) => m.id) : []
 
-      const attachmentRecords = await db
-        .select({
-          id: messageAttachment.id,
-          messageId: messageAttachment.messageId,
-          IMAGEFileId: messageAttachment.IMAGEFileId,
-          JSON: messageAttachment.JSON
-        })
-        .from(messageAttachment)
-        .where(inArray(messageAttachment.messageId, messageIds))
+      const attachmentRecords =
+        messageIds.length > 0
+          ? await db
+              .select({
+                id: messageAttachment.id,
+                messageId: messageAttachment.messageId,
+                IMAGEFileId: messageAttachment.IMAGEFileId,
+                JSON: messageAttachment.JSON
+              })
+              .from(messageAttachment)
+              .where(inArray(messageAttachment.messageId, messageIds))
+          : []
 
       const attachmentsByMessageId = attachmentRecords.reduce(
         (acc, att) => {
