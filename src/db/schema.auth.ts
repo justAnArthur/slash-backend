@@ -10,6 +10,7 @@ export const user = sqliteTable("user", {
     mode: "boolean"
   }).notNull(),
   image: text("image"),
+  bio: text("bio"),
   createdAt: integer("createdAt", {
     mode: "timestamp"
   })
