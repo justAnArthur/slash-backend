@@ -1,4 +1,5 @@
 import db from "@/src/db/connection"
+import { insertFile } from "@/src/api/file/files.api"
 import { user } from "@/src/db/schema.auth"
 import { checkAndGetSession } from "@/src/lib/auth"
 import { and, eq, like, ne, sql } from "drizzle-orm"
@@ -63,3 +64,49 @@ export default new Elysia({ prefix: "/users" })
       }
     }
   })
+  .post(
+    "/profile",
+    async ({
+      body,
+      request
+    }: {
+      body: { image?: File; bio?: string }
+      request: Context["request"]
+    }) => {
+      const session = await checkAndGetSession(request.headers)
+
+      const { image, bio } = body
+
+      try {
+        let file
+        if (image) {
+          file = await insertFile(image)
+        }
+        const updatedUser = await db
+          .update(user)
+          .set({
+            bio: bio || sql`bio`,
+            image: file?.id || sql`image`,
+            updatedAt: new Date()
+          })
+          .where(eq(user.id, session.user.id))
+          .returning({
+            id: user.id,
+            name: user.name,
+            image: user.image,
+            bio: user.bio
+          })
+        return {
+          status: 200,
+          message: "User info updated successfully",
+          user: updatedUser
+        }
+      } catch (error) {
+        console.error("Error fetching chat:", error)
+        return {
+          status: 500,
+          message: "Internal server error"
+        }
+      }
+    }
+  )
