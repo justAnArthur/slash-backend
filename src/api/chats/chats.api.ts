@@ -1,6 +1,6 @@
 import { message } from "@/src/api/messages/messages.schema"
+import { user } from "@/src/api/users/users.schema"
 import db from "@/src/db/connection"
-import { user } from "@/src/db/schema.auth"
 import { checkAndGetSession } from "@/src/lib/auth"
 import {
   broadcastMessage,

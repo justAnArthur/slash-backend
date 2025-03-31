@@ -1,6 +1,6 @@
 import { chat } from "@/src/api/chats/chats.schema"
+import { user } from "@/src/api/users/users.schema"
 import { file } from "@/src/db/schema"
-import { user } from "@/src/db/schema.auth"
 import { relations } from "drizzle-orm/relations"
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
 

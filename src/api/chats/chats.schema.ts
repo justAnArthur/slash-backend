@@ -1,4 +1,4 @@
-import { user } from "@/src/db/schema.auth"
+import { user } from "@/src/api/users/users.schema"
 import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core"
 
 export const chat = sqliteTable("chat", {
