@@ -2,19 +2,19 @@ import { message } from "@/src/api/messages/messages.schema"
 import db from "@/src/db/connection"
 import { user } from "@/src/db/schema.auth"
 import { checkAndGetSession } from "@/src/lib/auth"
-import { and, count, desc, eq, exists, inArray, ne, sql } from "drizzle-orm"
-import Elysia, { type Context } from "elysia"
-import { chat, chatUser } from "./chats.schema"
-import type {
-  MessageAttachmentResponse,
-  MessageResponse
-} from "../messages/messages.api"
 import {
   broadcastMessage,
   subscribeUsersToChat,
   unsubscribeAllFromChat,
   unsubscribeUserFromChat
 } from "@/src/lib/chat.state"
+import { and, count, desc, eq, exists, inArray, ne, sql } from "drizzle-orm"
+import Elysia, { type Context } from "elysia"
+import type {
+  MessageAttachmentResponse,
+  MessageResponse
+} from "../messages/messages.api"
+import { chat, chatUser } from "./chats.schema"
 
 interface CreateChatRequest {
   userIds: string[]
@@ -98,12 +98,14 @@ export default new Elysia({ prefix: "/chats" })
       query,
       request
     }: {
-      query: { page: number; pageSize: number }
+      query: { page: number; pageSize: number; pinned?: string }
       request: Context["request"]
     }) => {
-      const { page = 1, pageSize = 5 } = query
       const session = await checkAndGetSession(request.headers)
       const userId = session.user.id
+
+      const { page = 1, pageSize = 5, pinned: _pinned } = query
+      const pinned = _pinned === "true"
 
       const offset = (Number(page) - 1) * pageSize
 
@@ -154,7 +156,12 @@ export default new Elysia({ prefix: "/chats" })
           )
         )
         .leftJoin(user, eq(message.senderId, user.id))
-        .where(eq(chatUser.userId, userId))
+        .where(
+          and(
+            eq(chatUser.userId, userId),
+            pinned ? eq(chatUser.pinned, true) : sql`true`
+          )
+        )
         .orderBy(desc(message.createdAt))
         .limit(pageSize)
         .offset(offset)
@@ -335,6 +342,28 @@ export default new Elysia({ prefix: "/chats" })
         console.error(error)
         return { error: "An error occurred while deleting the chat." }
       }
+    }
+  )
+  .post(
+    "/:id",
+    async ({
+      params,
+      request,
+      body
+    }: {
+      params: { id: string }
+      request: Context["request"]
+      body: { pinned?: boolean }
+    }) => {
+      await checkAndGetSession(request.headers)
+      const chatId = params.id
+
+      const { pinned } = body
+
+      await db
+        .update(chatUser)
+        .set({ pinned: !!pinned })
+        .where(eq(chatUser.chatId, chatId))
     }
   )
 
