@@ -2,10 +2,10 @@ import { insertFile } from "@/src/api/file/files.api"
 import { db } from "@/src/db/connection"
 import { type Message, message, messageAttachment, user } from "@/src/db/schema"
 import { checkAndGetSession } from "@/src/lib/auth"
+import { broadcastMessage } from "@/src/lib/chat.state"
 import { desc, eq, inArray, sql } from "drizzle-orm"
 import type { Context } from "elysia"
 import { Elysia } from "elysia"
-import { broadcastMessage } from "@/src/lib/chat.state"
 
 export default new Elysia({ prefix: "messages" })
   .get(
@@ -100,6 +100,7 @@ export default new Elysia({ prefix: "messages" })
       const type = formData.get("type")
       const _content = formData.get("content")
 
+      // @ts-ignore
       console.log([...formData.keys()])
       console.log("insertedMessage", _content)
 
@@ -122,7 +123,8 @@ export default new Elysia({ prefix: "messages" })
           senderId: message.senderId,
           createdAt: message.createdAt
         })
-      let attachments: MessageAttachmentResponse[] = []
+
+      const attachments: MessageAttachmentResponse[] = []
       switch (type) {
         case MessageType.IMAGE: {
           const file = await insertFile(_content as File)
