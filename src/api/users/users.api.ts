@@ -1,6 +1,6 @@
-import db from "@/src/db/connection"
 import { insertFile } from "@/src/api/file/files.api"
-import { user } from "@/src/db/schema.auth"
+import { user } from "@/src/api/users/users.schema"
+import db from "@/src/db/connection"
 import { checkAndGetSession } from "@/src/lib/auth"
 import { and, eq, like, ne, sql } from "drizzle-orm"
 import type { Context } from "elysia"
@@ -80,7 +80,9 @@ export default new Elysia({ prefix: "/users" })
       const { image, bio } = body
 
       try {
+        // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
         let file
+
         if (image) {
           const MAX_SIZE = 1_048_576
           if (image.size > MAX_SIZE) {

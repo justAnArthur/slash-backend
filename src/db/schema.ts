@@ -10,3 +10,4 @@ export const file = sqliteTable("file", {
     .$defaultFn(() => Bun.randomUUIDv7()),
   path: text("path").notNull()
 })
+export { user } from "@/src/api/users/users.schema"
