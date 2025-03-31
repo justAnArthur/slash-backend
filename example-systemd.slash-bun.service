@@ -1,0 +1,24 @@
+[Unit]
+Description=Slash Bun Application Service
+After=network.target
+
+[Service]
+User=root
+Group=root
+
+WorkingDirectory=/path/to/your/app
+
+# to a compiled binary
+ExecStart=/path/to/your/app/your-bun-app
+
+# alternatively, via Bun
+# ExecStart=/usr/local/bin/bun run /path/to/your/app/index.js
+
+Restart=on-failure
+RestartSec=5
+
+# optionally
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
