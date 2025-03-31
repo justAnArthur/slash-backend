@@ -42,46 +42,53 @@ export default new Elysia({ prefix: "/users" })
         .offset(offset)
     }
   )
-  .get("/:id", async ({ params }: { params: { id: string } }) => {
-    const { id } = params
-    try {
-      const [userToReturn] = await db
-        .select({ id: user.id, name: user.name, image: user.image })
-        .from(user)
-        .where(eq(user.id, id))
-      if (!userToReturn) {
-        return {
-          status: 404,
-          message: "User not found"
+  .get(
+    "/:id",
+    async ({
+      params,
+      error
+    }: { params: { id: string }; error: Context["error"] }) => {
+      const { id } = params
+      try {
+        const [userToReturn] = await db
+          .select({ id: user.id, name: user.name, image: user.image })
+          .from(user)
+          .where(eq(user.id, id))
+
+        if (!userToReturn) {
+          return error(404, "User not found")
         }
-      }
-      return userToReturn
-    } catch (error) {
-      console.error("Error fetching chat:", error)
-      return {
-        status: 500,
-        message: "Internal server error"
+        return userToReturn
+      } catch (err) {
+        console.error("Error fetching user:", err)
+        return error(500, "Internal server error")
       }
     }
-  })
+  )
   .post(
     "/profile",
     async ({
       body,
-      request
+      request,
+      error
     }: {
       body: { image?: File; bio?: string }
       request: Context["request"]
+      error: Context["error"]
     }) => {
       const session = await checkAndGetSession(request.headers)
-
       const { image, bio } = body
 
       try {
         let file
         if (image) {
+          const MAX_SIZE = 1_048_576
+          if (image.size > MAX_SIZE) {
+            return error(400, "Image size exceeds 1MB limit")
+          }
           file = await insertFile(image)
         }
+
         const updatedUser = await db
           .update(user)
           .set({
@@ -96,17 +103,41 @@ export default new Elysia({ prefix: "/users" })
             image: user.image,
             bio: user.bio
           })
+
         return {
-          status: 200,
           message: "User info updated successfully",
           user: updatedUser
         }
-      } catch (error) {
-        console.error("Error fetching chat:", error)
-        return {
-          status: 500,
-          message: "Internal server error"
+      } catch (err) {
+        console.error("Error updating profile:", err)
+        return error(500, "Internal server error")
+      }
+    }
+  )
+  .get(
+    "/:id/profile",
+    async ({
+      params,
+      error
+    }: { params: { id: string }; error: Context["error"] }) => {
+      const { id } = params
+      try {
+        const [userProfile] = await db
+          .select({ image: user.image, bio: user.bio })
+          .from(user)
+          .where(eq(user.id, id))
+
+        if (!userProfile) {
+          return error(404, "User not found")
         }
+
+        return {
+          image: userProfile.image || null,
+          bio: userProfile.bio || null
+        }
+      } catch (err) {
+        console.error("Error fetching user profile:", err)
+        return error(500, "Internal server error")
       }
     }
   )
