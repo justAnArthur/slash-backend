@@ -1,4 +1,6 @@
 import db from "@/src/db/connection"
+import * as speakeasy from "speakeasy"
+import * as QRCode from "qrcode"
 import { insertFile } from "@/src/api/file/files.api"
 import { user } from "@/src/db/schema.auth"
 import { checkAndGetSession } from "@/src/lib/auth"
@@ -138,6 +140,153 @@ export default new Elysia({ prefix: "/users" })
       } catch (err) {
         console.error("Error fetching user profile:", err)
         return error(500, "Internal server error")
+      }
+    }
+  )
+  .post(
+    "/totp/setup",
+    async ({
+      body,
+      request,
+      error
+    }: {
+      body?: { token: string; secret: string }
+      request: Context["request"]
+      error: Context["error"]
+    }) => {
+      const session = await checkAndGetSession(request.headers)
+      const [currentUser] = await db
+        .select()
+        .from(user)
+        .where(eq(user.id, session?.user.id))
+      if (!currentUser) {
+        return error(404, "User not found")
+      }
+
+      if (body && body.token && body.secret) {
+        const isValid = speakeasy.totp.verify({
+          secret: body.secret,
+          encoding: "base32",
+          token: body.token,
+          window: 1
+        })
+        if (isValid) {
+          await db
+            .update(user)
+            .set({ totpSecret: body.secret })
+            .where(eq(user.id, session?.user.id))
+          return { success: true }
+        } else {
+          return error(401, "Invalid TOTP code")
+        }
+      } else {
+        const secret = speakeasy.generateSecret({
+          length: 20,
+          name: `Slash:${currentUser.email}`,
+          issuer: "Slash"
+        })
+
+        const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url!)
+        return {
+          otpauthUrl: secret.otpauth_url,
+          qrCodeUrl,
+          secret: secret.base32
+        }
+      }
+    }
+  )
+  .post(
+    "/totp/verify",
+    async ({
+      body,
+      request,
+      error
+    }: {
+      body: { token: string }
+      request: Context["request"]
+      error: Context["error"]
+    }) => {
+      const { token } = body
+      const session = await checkAndGetSession(request.headers)
+
+      const [currentUser] = await db
+        .select()
+        .from(user)
+        .where(eq(user.id, session?.user.id))
+      if (!currentUser || !currentUser.totpSecret) {
+        return error(400, "TOTP not set up for this user")
+      }
+
+      const isValid = speakeasy.totp.verify({
+        secret: currentUser.totpSecret,
+        encoding: "base32",
+        token,
+        window: 1
+      })
+      if (isValid) {
+        return { success: true }
+      } else {
+        return error(401, "Invalid TOTP code")
+      }
+    }
+  )
+  .get(
+    "/totp/check",
+    async ({
+      request,
+      error
+    }: { request: Context["request"]; error: Context["error"] }) => {
+      const session = await checkAndGetSession(request.headers)
+
+      const [currentUser] = await db
+        .select()
+        .from(user)
+        .where(eq(user.id, session?.user.id))
+
+      if (!currentUser || !currentUser.totpSecret) {
+        return error(400, "TOTP not set up for this user")
+      }
+      return
+    }
+  )
+  .post(
+    "/totp/unset",
+    async ({
+      body,
+      request,
+      error
+    }: {
+      body: { token: string }
+      request: Context["request"]
+      error: Context["error"]
+    }) => {
+      const session = await checkAndGetSession(request.headers)
+
+      const [currentUser] = await db
+        .select()
+        .from(user)
+        .where(eq(user.id, session?.user.id))
+
+      if (!currentUser) {
+        return error(404, "User not found")
+      }
+      if (!currentUser.totpSecret) {
+        return error(400, "2-FA is not set up")
+      }
+      const isValid = speakeasy.totp.verify({
+        secret: currentUser.totpSecret as string,
+        encoding: "base32",
+        token: body.token,
+        window: 1
+      })
+      if (isValid) {
+        await db
+          .update(user)
+          .set({ totpSecret: null })
+          .where(eq(user.id, session?.user.id))
+        return { success: true }
+      } else {
+        return error(401, "Invalid TOTP code")
       }
     }
   )
