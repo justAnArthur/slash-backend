@@ -11,6 +11,7 @@ export const user = sqliteTable("user", {
   }).notNull(),
   image: text("image"),
   bio: text("bio"),
+  totpSecret: text("totpSecret"),
   createdAt: integer("createdAt", {
     mode: "timestamp"
   })
