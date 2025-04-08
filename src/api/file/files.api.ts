@@ -14,6 +14,11 @@ export default new Elysia({ prefix: "files" }).get(
     set.headers["Content-Disposition"] = `attachment; filename="${file.name}"`
 
     return file
+  },
+  {
+    detail: {
+      description: "Get a file by its ID."
+    }
   }
 )
 

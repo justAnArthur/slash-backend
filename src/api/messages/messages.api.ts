@@ -4,8 +4,7 @@ import { type Message, message, messageAttachment, user } from "@/src/db/schema"
 import { checkAndGetSession } from "@/src/lib/auth"
 import { broadcastMessage } from "@/src/lib/chat.state"
 import { desc, eq, inArray, sql } from "drizzle-orm"
-import type { Context } from "elysia"
-import { Elysia } from "elysia"
+import { type Context, Elysia, t } from "elysia"
 
 export default new Elysia({ prefix: "messages" })
   .get(
@@ -81,6 +80,50 @@ export default new Elysia({ prefix: "messages" })
           pageSize: pageSize,
           totalPages: Math.ceil((totalMessages[0]?.count || 0) / pageSize)
         }
+      }
+    },
+    {
+      detail: {
+        description: "Get messages by chat ID."
+      },
+      params: t.Object({
+        chatId: t.String()
+      }),
+      query: t.Object({
+        page: t.Number({ default: 1 }),
+        pageSize: t.Number({ default: 20 })
+      }),
+      response: {
+        200: t.Object({
+          messages: t.Array(
+            t.Object({
+              id: t.String(),
+              content: t.Union([t.String(), t.Null()]),
+              type: t.String({
+                description:
+                  "The type of the message. Can be TEXT, IMAGE, or LOCATION."
+              }),
+              senderId: t.String(),
+              createdAt: t.Any(),
+              name: t.Nullable(t.String()),
+              image: t.Any(),
+              attachments: t.Array(
+                t.Object({
+                  id: t.String(),
+                  messageId: t.String(),
+                  IMAGEFileId: t.Union([t.String(), t.Null()]),
+                  JSON: t.Union([t.String(), t.Null()])
+                })
+              )
+            })
+          ),
+          pagination: t.Object({
+            total: t.Number(),
+            page: t.Number(),
+            pageSize: t.Number(),
+            totalPages: t.Number()
+          })
+        })
       }
     }
   )
@@ -179,6 +222,27 @@ export default new Elysia({ prefix: "messages" })
       }
       broadcastMessage(chatId, fullMessage)
       return fullMessage
+    },
+    {
+      detail: {
+        description: "Create a new message."
+      },
+      params: t.Object({
+        chatId: t.String()
+      }),
+      body: t.Object(
+        {
+          type: t.Union([
+            t.Literal("TEXT"),
+            t.Literal("IMAGE"),
+            t.Literal("LOCATION")
+          ]),
+          content: t.Union([t.String(), t.File()])
+        },
+        {
+          description: "FormData with type and content."
+        }
+      )
     }
   )
 
