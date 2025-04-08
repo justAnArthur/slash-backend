@@ -12,7 +12,7 @@ import cors from "@elysiajs/cors"
 import { opentelemetry } from "@elysiajs/opentelemetry"
 import swagger from "@elysiajs/swagger"
 import { logger } from "@tqman/nice-logger"
-import { Elysia } from "elysia"
+import { Elysia, t } from "elysia"
 import { wsHandler } from "@/src/api/ws"
 
 export const app = new Elysia({
@@ -23,27 +23,33 @@ export const app = new Elysia({
   .use(opentelemetry(opentelemetryConfig))
   .use(cors(corsConfig))
   .use(wsHandler)
-  .get(
-    "/",
-    {
-      tags: ["guest"],
-      detail: {
-        summary: "/",
-        description: "The main entry point of the API. Uses as test."
-      }
+  .get("/", () => "Hello Elysia! 🦊", {
+    tags: ["guest"],
+    detail: {
+      summary: "/",
+      description: "The main entry point of the API. Uses as test."
     },
-    () => "Hello Elysia! 🦊"
-  )
+    response: {
+      200: t.String()
+    }
+  })
   .group(
     "/api/auth",
     {
       tags: ["guest"],
       detail: {
-        summary: "/api/auth/*",
         description: "Handles authentication routes. Uses BetterAuth."
       }
     },
-    (app) => app.all("", handleBetterAuthRoute)
+    (app) =>
+      app
+        .post("/sign-in/email", handleBetterAuthRoute, {
+          detail: {
+            description:
+              "Use this route to get a token that will be used in cookies."
+          }
+        })
+        .all("", handleBetterAuthRoute)
   )
   .guard(
     {
