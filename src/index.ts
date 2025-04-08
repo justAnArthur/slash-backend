@@ -22,18 +22,47 @@ export const app = new Elysia({
   .use(swagger(swaggerConfig))
   .use(opentelemetry(opentelemetryConfig))
   .use(cors(corsConfig))
-  .get("/", () => "Hello Elysia! 🦊")
-  .all("/api/auth/*", handleBetterAuthRoute)
   .use(wsHandler)
-  .guard({ beforeHandle: authMiddleware }, (app) =>
-    app
-      .get("/secured", () => "Secured 🔗🦊", {
-        detail: { description: "This is a secured route" }
-      })
-      .use(userRoutes)
-      .use(chatRoutes)
-      .use(messageRoutes)
-      .use(fileRoutes)
+  .get(
+    "/",
+    {
+      tags: ["guest"],
+      detail: {
+        summary: "/",
+        description: "The main entry point of the API. Uses as test."
+      }
+    },
+    () => "Hello Elysia! 🦊"
+  )
+  .group(
+    "/api/auth",
+    {
+      tags: ["guest"],
+      detail: {
+        summary: "/api/auth/*",
+        description: "Handles authentication routes. Uses BetterAuth."
+      }
+    },
+    (app) => app.all("", handleBetterAuthRoute)
+  )
+  .guard(
+    {
+      beforeHandle: authMiddleware,
+      detail: {
+        tags: ["authenticated"]
+      }
+    },
+    (app) =>
+      app
+        .get("/secured", () => "Secured 🔗🦊", {
+          detail: {
+            description: "Uses as test that auth is working."
+          }
+        })
+        .use(userRoutes)
+        .use(chatRoutes)
+        .use(messageRoutes)
+        .use(fileRoutes)
   )
   .listen(Bun.env.PORT || 3000)
 
