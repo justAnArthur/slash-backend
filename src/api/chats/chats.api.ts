@@ -9,7 +9,7 @@ import {
   unsubscribeUserFromChat
 } from "@/src/lib/chat.state"
 import { and, count, desc, eq, exists, inArray, ne, sql } from "drizzle-orm"
-import Elysia, { type Context } from "elysia"
+import Elysia, { type Context, t } from "elysia"
 import type {
   MessageAttachmentResponse,
   MessageResponse
@@ -38,9 +38,9 @@ export default new Elysia({ prefix: "/chats" })
         const userId = session.user.id as string
         const { userIds, name } = body
 
-        if (!userIds || userIds.length === 0) throw new Error("Users required")
-
-        const chatType: ChatType = userIds.length === 1 ? "private" : "group"
+        const chatType = (
+          userIds.length === 1 ? "private" : "group"
+        ) as ChatType
 
         if (chatType === "private") {
           const [existingChat] = await db
@@ -89,6 +89,23 @@ export default new Elysia({ prefix: "/chats" })
         return { chatId: newChat.id }
       } catch (error) {
         console.error(error)
+      }
+    },
+    {
+      body: t.Object({
+        userIds: t.Array(t.String(), {
+          minItems: 1,
+          description:
+            "Array of user IDs. When one multiple IDs are provided - group chat type is used."
+        }),
+        name: t.String({
+          minLength: 3,
+          description: "Name of chat."
+        })
+      }),
+      detail: {
+        description:
+          "Create a new chat. Group or private chat. If private chat already exists - it will be returned."
       }
     }
   )
