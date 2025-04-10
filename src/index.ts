@@ -12,7 +12,7 @@ import cors from "@elysiajs/cors"
 import { opentelemetry } from "@elysiajs/opentelemetry"
 import swagger from "@elysiajs/swagger"
 import { logger } from "@tqman/nice-logger"
-import { Elysia } from "elysia"
+import { Elysia, t } from "elysia"
 import { wsHandler } from "@/src/api/ws"
 
 export const app = new Elysia({
@@ -22,18 +22,53 @@ export const app = new Elysia({
   .use(swagger(swaggerConfig))
   .use(opentelemetry(opentelemetryConfig))
   .use(cors(corsConfig))
-  .get("/", () => "Hello Elysia! 🦊")
-  .all("/api/auth/*", handleBetterAuthRoute)
   .use(wsHandler)
-  .guard({ beforeHandle: authMiddleware }, (app) =>
-    app
-      .get("/secured", () => "Secured 🔗🦊", {
-        detail: { description: "This is a secured route" }
-      })
-      .use(userRoutes)
-      .use(chatRoutes)
-      .use(messageRoutes)
-      .use(fileRoutes)
+  .get("/", () => "Hello Elysia! 🦊", {
+    tags: ["guest"],
+    detail: {
+      summary: "/",
+      description: "The main entry point of the API. Uses as test."
+    },
+    response: {
+      200: t.String()
+    }
+  })
+  .group(
+    "/api/auth",
+    {
+      tags: ["guest"],
+      detail: {
+        description: "Handles authentication routes. Uses BetterAuth."
+      }
+    },
+    (app) =>
+      app
+        .post("/sign-in/email", handleBetterAuthRoute, {
+          detail: {
+            description:
+              "Use this route to get a token that will be used in cookies."
+          }
+        })
+        .all("", handleBetterAuthRoute)
+  )
+  .guard(
+    {
+      beforeHandle: authMiddleware,
+      detail: {
+        tags: ["authenticated"]
+      }
+    },
+    (app) =>
+      app
+        .get("/secured", () => "Secured 🔗🦊", {
+          detail: {
+            description: "Uses as test that auth is working."
+          }
+        })
+        .use(userRoutes)
+        .use(chatRoutes)
+        .use(messageRoutes)
+        .use(fileRoutes)
   )
   .listen(Bun.env.PORT || 3000)
 
