@@ -9,7 +9,7 @@ import {
   unsubscribeUserFromChat
 } from "@/src/lib/chat.state"
 import { and, count, desc, eq, exists, inArray, ne, sql } from "drizzle-orm"
-import Elysia, { type Context } from "elysia"
+import Elysia, { type Context, t } from "elysia"
 import type {
   MessageAttachmentResponse,
   MessageResponse
@@ -38,9 +38,9 @@ export default new Elysia({ prefix: "/chats" })
         const userId = session.user.id as string
         const { userIds, name } = body
 
-        if (!userIds || userIds.length === 0) throw new Error("Users required")
-
-        const chatType: ChatType = userIds.length === 1 ? "private" : "group"
+        const chatType = (
+          userIds.length === 1 ? "private" : "group"
+        ) as ChatType
 
         if (chatType === "private") {
           const [existingChat] = await db
@@ -90,6 +90,23 @@ export default new Elysia({ prefix: "/chats" })
       } catch (error) {
         console.error(error)
       }
+    },
+    {
+      detail: {
+        description:
+          "Create a new chat. Group or private chat. If private chat already exists - it will be returned."
+      },
+      body: t.Object({
+        userIds: t.Array(t.String(), {
+          minItems: 1,
+          description:
+            "Array of user IDs. When one multiple IDs are provided - group chat type is used."
+        }),
+        name: t.String({
+          minLength: 3,
+          description: "Name of chat."
+        })
+      })
     }
   )
   .get(
@@ -120,7 +137,7 @@ export default new Elysia({ prefix: "/chats" })
         .groupBy(message.chatId)
         .as("lastMessages")
 
-      return db
+      const chats = await db
         .select({
           id: chat.id,
           type: chat.type,
@@ -165,6 +182,45 @@ export default new Elysia({ prefix: "/chats" })
         .orderBy(desc(message.createdAt))
         .limit(pageSize)
         .offset(offset)
+
+      return chats.map((chat) => ({
+        ...chat,
+        name: chat.name as string
+      }))
+    },
+    {
+      detail: {
+        description:
+          "Get all chats for the current user. Pagination is supported."
+      },
+      query: t.Object({
+        page: t.Number({
+          description: "Page number. Default is 1."
+        }),
+        pageSize: t.Number({
+          description: "Number of chats per page. Default is 5."
+        }),
+        pinned: t.Optional(
+          t.String({
+            description:
+              "If true - only pinned chats will be returned. Default is false."
+          })
+        )
+      }),
+      response: {
+        200: t.Array(
+          t.Object({
+            id: t.String(),
+            name: t.String(),
+            type: t.Union([t.Literal("private"), t.Literal("group")]),
+            lastMessage: t.Object({})
+          }),
+          {
+            description:
+              "Array of chats with last message. If no chats found - empty array."
+          }
+        )
+      }
     }
   )
   .get(
@@ -176,39 +232,56 @@ export default new Elysia({ prefix: "/chats" })
       params: { id: string }
       request: Context["request"]
     }) => {
-      try {
-        const chatId = params.id
-        const session = await checkAndGetSession(request.headers)
-        const userId = session.user.id as string
+      const chatId = params.id
+      const session = await checkAndGetSession(request.headers)
+      const userId = session.user.id as string
 
-        const participants = await db
-          .select({
-            userId: chatUser.userId,
-            name: user.name,
-            image: user.image
+      const participants = await db
+        .select({
+          userId: chatUser.userId,
+          name: user.name,
+          image: user.image
+        })
+        .from(chatUser)
+        .innerJoin(user, eq(user.id, chatUser.userId))
+        .where(and(eq(chatUser.chatId, chatId), ne(chatUser.userId, userId)))
+
+      const [chatDetails] = await db
+        .select({
+          id: chat.id,
+          type: chat.type,
+          name: chat.name
+        })
+        .from(chat)
+        .leftJoin(chatUser, eq(chat.id, chatUser.chatId))
+        .leftJoin(message, eq(message.chatId, chatId))
+        .where(eq(chat.id, chatId))
+        .limit(1)
+
+      if (!chatDetails) throw new Error("Chat not found")
+
+      return { chat: { ...chatDetails, participants } as ChatResponse }
+    },
+    {
+      detail: {
+        description:
+          "Get chat details by ID. Returns chat name, type and participants."
+      },
+      response: {
+        200: t.Object({
+          chat: t.Object({
+            id: t.String(),
+            name: t.String(),
+            type: t.Union([t.Literal("private"), t.Literal("group")]),
+            participants: t.Array(
+              t.Object({
+                userId: t.String(),
+                name: t.String(),
+                image: t.Union([t.Null(), t.String()])
+              })
+            )
           })
-          .from(chatUser)
-          .innerJoin(user, eq(user.id, chatUser.userId))
-          .where(and(eq(chatUser.chatId, chatId), ne(chatUser.userId, userId)))
-
-        const [chatDetails] = await db
-          .select({
-            id: chat.id,
-            type: chat.type,
-            name: chat.name
-          })
-          .from(chat)
-          .leftJoin(chatUser, eq(chat.id, chatUser.chatId))
-          .leftJoin(message, eq(message.chatId, chatId))
-          .where(eq(chat.id, chatId))
-          .limit(1)
-
-        if (!chatDetails) throw new Error("Chat not found")
-
-        return { chat: { ...chatDetails, participants } as ChatResponse }
-      } catch (error) {
-        console.error(error)
-        return { error }
+        })
       }
     }
   )
@@ -237,7 +310,7 @@ export default new Elysia({ prefix: "/chats" })
         .groupBy(message.chatId)
         .as("lastMessages")
 
-      return db
+      const [chatDetails] = await db
         .select({
           id: chat.id,
           type: chat.type,
@@ -275,6 +348,25 @@ export default new Elysia({ prefix: "/chats" })
         .leftJoin(user, eq(message.senderId, user.id))
         .where(and(eq(chatUser.userId, userId), eq(chat.id, id)))
         .limit(1)
+
+      return {
+        ...chatDetails,
+        name: chatDetails.name as string
+      }
+    },
+    {
+      detail: {
+        description:
+          "Fetch chat details by ID. Returns chat name, type and last message."
+      },
+      response: {
+        200: t.Object({
+          id: t.String(),
+          name: t.String(),
+          type: t.Union([t.Literal("private"), t.Literal("group")]),
+          lastMessage: t.Object({})
+        })
+      }
     }
   )
   .delete(
@@ -286,61 +378,61 @@ export default new Elysia({ prefix: "/chats" })
       params: { id: string }
       request: Context["request"]
     }) => {
-      try {
-        const chatId = params.id
-        const session = await checkAndGetSession(request.headers)
-        const userId = session.user.id as string
+      const chatId = params.id
+      const session = await checkAndGetSession(request.headers)
+      const userId = session.user.id as string
 
-        const [chatDetails] = await db
-          .select({ type: chat.type, role: chatUser.role })
-          .from(chat)
-          .innerJoin(chatUser, eq(chat.id, chatUser.chatId))
-          .where(and(eq(chatUser.userId, userId), eq(chatUser.chatId, chatId)))
+      const [chatDetails] = await db
+        .select({ type: chat.type, role: chatUser.role })
+        .from(chat)
+        .innerJoin(chatUser, eq(chat.id, chatUser.chatId))
+        .where(and(eq(chatUser.userId, userId), eq(chatUser.chatId, chatId)))
+        .limit(1)
 
-          .limit(1)
-        if (!chatDetails) {
-          return {
-            error: "Chat not found or you do not have permission to delete it."
-          }
+      if (!chatDetails)
+        throw new Error(
+          "Chat not found or you do not have permission to delete it."
+        )
+
+      const { type, role } = chatDetails
+
+      if (type === "private" || role === "admin") {
+        await db.delete(chat).where(eq(chat.id, chatId))
+        unsubscribeAllFromChat(chatId)
+      } else if (type === "group") {
+        await db
+          .delete(chatUser)
+          .where(and(eq(chatUser.chatId, chatId), eq(chatUser.userId, userId)))
+        const [systemMessage] = await db
+          .insert(message)
+          .values({
+            chatId,
+            senderId: "SYSTEM",
+            type: "TEXT" as const,
+            content: `${session.user.name} has left the chat.`
+          })
+          .returning()
+
+        // @ts-ignore
+        const fullMessage: MessageResponse = {
+          ...systemMessage,
+          attachments: [] as MessageAttachmentResponse[],
+          name: "Info",
+          image: null
         }
-        const { type, role } = chatDetails
-        if (type === "private" || role === "admin") {
-          await db.delete(chat).where(eq(chat.id, chatId))
-          unsubscribeAllFromChat(chatId)
-        } else if (type === "group") {
-          await db
-            .delete(chatUser)
-            .where(
-              and(eq(chatUser.chatId, chatId), eq(chatUser.userId, userId))
-            )
-          const [systemMessage] = await db
-            .insert(message)
-            .values({
-              chatId,
-              senderId: "SYSTEM",
-              type: "TEXT" as const,
-              content: `${session.user.name} has left the chat.`
-            })
-            .returning()
+        unsubscribeUserFromChat(chatId, userId)
+        broadcastMessage(chatId, fullMessage)
+      }
+      //TODO: add websocket chat deletion notification
+      // Optionally, handle WebSocket notifications here if needed
+      // Example: broadcastChatDeletion(chatId);
 
-          // @ts-ignore
-          const fullMessage: MessageResponse = {
-            ...systemMessage,
-            attachments: [] as MessageAttachmentResponse[],
-            name: "Info",
-            image: null
-          }
-          unsubscribeUserFromChat(chatId, userId)
-          broadcastMessage(chatId, fullMessage)
-        }
-        //TODO: add websocket chat deletion notificaiton
-        // Optionally, handle WebSocket notifications here if needed
-        // Example: broadcastChatDeletion(chatId);
-
-        return { success: true, message: "Chat deleted successfully." }
-      } catch (error) {
-        console.error(error)
-        return { error: "An error occurred while deleting the chat." }
+      return { success: true, message: "Chat deleted successfully." }
+    },
+    {
+      detail: {
+        description:
+          "Delete a chat by ID. If the chat is private - it will be deleted. If group chat - user will be removed from the chat."
       }
     }
   )
@@ -364,6 +456,19 @@ export default new Elysia({ prefix: "/chats" })
         .update(chatUser)
         .set({ pinned: !!pinned })
         .where(eq(chatUser.chatId, chatId))
+    },
+    {
+      detail: {
+        description:
+          "Update chat information. Currently only pinned property is supported."
+      },
+      body: t.Object({
+        pinned: t.Optional(
+          t.Boolean({
+            description: "If true - chat will be pinned."
+          })
+        )
+      })
     }
   )
 
@@ -374,6 +479,7 @@ export type ChatResponse = {
   type: "group" | "private"
   participants: { userId: string; name: string; image: string | null }[]
 }
+
 export type ChatListResponse = {
   id: string
   name: string
