@@ -1,5 +1,5 @@
-import type { ElysiaWS } from "elysia/dist/ws"
 import type { MessageResponse } from "@/src/api/messages/messages.api"
+import type { ElysiaWS } from "elysia/dist/ws"
 
 export type ChatSubscriptions = Map<string, Set<ElysiaWS>>
 
@@ -15,6 +15,7 @@ export function broadcastMessage(chatId: string, message: MessageResponse) {
     message
   })
 
+  // @ts-ignore
   for (const ws of subscribers) {
     ws.send(payload)
   }
@@ -25,6 +26,7 @@ export function subscribeUsersToChat(chatId: string, userIds: string[]) {
   }
   const chatSubscribers = chatSubscriptions.get(chatId)!
 
+  // @ts-ignore
   for (const [_, subscribers] of chatSubscriptions) {
     for (const ws of subscribers) {
       if (userIds.includes(ws.data.query.id)) {
@@ -37,6 +39,7 @@ export function unsubscribeUserFromChat(chatId: string, userId: string) {
   const subscribers = chatSubscriptions.get(chatId)
   if (!subscribers) return
 
+  // @ts-ignore
   for (const ws of subscribers) {
     if (ws.data.query.id === userId) {
       subscribers.delete(ws)
@@ -58,6 +61,7 @@ export function unsubscribeAllFromChat(chatId: string) {
     chatId
   })
 
+  // @ts-ignore
   for (const ws of subscribers) {
     ws.send(payload)
   }

@@ -1,4 +1,4 @@
-import { user } from "@/src/db/schema.auth"
+import { user } from "@/src/api/users/users.schema"
 import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core"
 
 export const chat = sqliteTable("chat", {
@@ -27,7 +27,8 @@ export const chatUser = sqliteTable(
       .references(() => user.id),
     role: text("role", { enum: ["admin", "member"] })
       .notNull()
-      .default("member")
+      .default("member"),
+    pinned: integer("pinned", { mode: "boolean" }).notNull().default(false)
   },
   (table) => ({
     primaryKey: primaryKey(table.chatId, table.userId)
