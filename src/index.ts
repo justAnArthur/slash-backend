@@ -49,7 +49,7 @@ export const app = new Elysia({
               "Use this route to get a token that will be used in cookies."
           }
         })
-        .all("", handleBetterAuthRoute)
+        .all("/*", handleBetterAuthRoute)
   )
   .guard(
     {
