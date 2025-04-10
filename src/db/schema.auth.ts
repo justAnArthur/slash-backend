@@ -1,28 +1,7 @@
+import { user } from "@/src/api/users/users.schema"
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
 
-export const user = sqliteTable("user", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => Bun.randomUUIDv7()),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  emailVerified: integer("emailVerified", {
-    mode: "boolean"
-  }).notNull(),
-  image: text("image"),
-  bio: text("bio"),
-  totpSecret: text("totpSecret"),
-  createdAt: integer("createdAt", {
-    mode: "timestamp"
-  })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  updatedAt: integer("updatedAt", {
-    mode: "timestamp"
-  })
-    .notNull()
-    .$onUpdateFn(() => new Date())
-})
+export { user }
 
 export const session = sqliteTable("session", {
   id: text("id")
@@ -99,4 +78,15 @@ export const verification = sqliteTable("verification", {
   })
     .notNull()
     .$onUpdateFn(() => new Date())
+})
+export const twoFactor = sqliteTable("twoFactor", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => Bun.randomUUIDv7()),
+
+  userId: text("userId")
+    .notNull()
+    .references(() => user.id),
+  secret: text("secret"),
+  backupCodes: text("backupCodes")
 })

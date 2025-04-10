@@ -3,6 +3,18 @@ CREATE TABLE `file` (
 	`path` text NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `user` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`email` text NOT NULL,
+	`emailVerified` integer NOT NULL,
+	`image` text,
+	`bio` text,
+	`totpSecret` text,
+	`createdAt` integer NOT NULL,
+	`updatedAt` integer NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE `account` (
 	`id` text PRIMARY KEY NOT NULL,
 	`userId` text NOT NULL,
@@ -31,17 +43,6 @@ CREATE TABLE `session` (
 	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE TABLE `user` (
-	`id` text PRIMARY KEY NOT NULL,
-	`name` text NOT NULL,
-	`email` text NOT NULL,
-	`emailVerified` integer NOT NULL,
-	`image` text,
-	`bio` text,
-	`createdAt` integer NOT NULL,
-	`updatedAt` integer NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE `verification` (
 	`id` text PRIMARY KEY NOT NULL,
 	`identifier` text NOT NULL,
@@ -62,6 +63,7 @@ CREATE TABLE `chat_user` (
 	`chat_id` text NOT NULL,
 	`user_id` text NOT NULL,
 	`role` text DEFAULT 'member' NOT NULL,
+	`pinned` integer DEFAULT false NOT NULL,
 	PRIMARY KEY(`chat_id`, `user_id`),
 	FOREIGN KEY (`chat_id`) REFERENCES `chat`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
