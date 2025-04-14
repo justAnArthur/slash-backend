@@ -61,6 +61,20 @@ export const app = new Elysia({
                   }
                 }
               }
+            },
+            response: {
+              200: t.Object({
+                token: t.String(),
+                user: t.Object({
+                  id: t.String(),
+                  name: t.String(),
+                  email: t.String()
+                })
+              }),
+              400: t.Object({
+                code: t.String(),
+                message: t.String()
+              })
             }
           }
         })
@@ -81,6 +95,20 @@ export const app = new Elysia({
                   }
                 }
               }
+            },
+            response: {
+              200: t.Object({
+                token: t.String(),
+                user: t.Object({
+                  id: t.String(),
+                  name: t.String(),
+                  email: t.String()
+                })
+              }),
+              400: t.Object({
+                code: t.String(),
+                message: t.String()
+              })
             }
           }
         })
@@ -88,9 +116,16 @@ export const app = new Elysia({
   )
   .guard(
     {
+      // @ts-ignore
       beforeHandle: authMiddleware,
       detail: {
         tags: ["authenticated"]
+      },
+      response: {
+        401: t.String({
+          description: "Unauthorized"
+        }),
+        500: t.Any({})
       }
     },
     (app) =>
@@ -105,6 +140,7 @@ export const app = new Elysia({
         .use(messageRoutes)
         .use(fileRoutes)
   )
+  .get("/favicon.ico", () => Bun.file("../../docs/app/icon.png"))
   .listen(Bun.env.PORT || 3000)
 
 export type App = typeof app
