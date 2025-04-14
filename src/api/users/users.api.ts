@@ -49,17 +49,7 @@ export default new Elysia({ prefix: "/users" })
         q: t.String({ required: true }),
         page: t.Number({ required: false }),
         pageSize: t.Number({ required: false })
-      }),
-      response: {
-        200: t.Array(
-          t.Object({
-            id: t.String(),
-            name: t.String(),
-            image: t.Nullable(t.String()),
-            email: t.String()
-          })
-        )
-      }
+      })
     }
   )
   .get(
@@ -81,7 +71,7 @@ export default new Elysia({ prefix: "/users" })
         .from(user)
         .where(eq(user.id, id))
 
-      if (!userToReturn) throw new Error("Unauthorized")
+      if (!userToReturn) return error(404, "USER_NOT_FOUND")
 
       return userToReturn
     },
@@ -108,40 +98,35 @@ export default new Elysia({ prefix: "/users" })
       const session = await checkAndGetSession(request.headers)
       const { image, bio } = body
 
-      try {
-        // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
-        let file
+      // biome-ignore lint/suspicious/noImplicitAnyLet: -
+      let file
 
-        if (image) {
-          const MAX_SIZE = 1_048_576
-          if (image.size > MAX_SIZE) {
-            return error(400, "Image size exceeds 1MB limit")
-          }
-          file = await insertFile(image)
-        }
+      if (image) {
+        const MAX_SIZE = 1_048_576
 
-        const updatedUser = await db
-          .update(user)
-          .set({
-            bio: bio || sql`bio`,
-            image: file?.id || sql`image`,
-            updatedAt: new Date()
-          })
-          .where(eq(user.id, session.user.id))
-          .returning({
-            id: user.id,
-            name: user.name,
-            image: user.image,
-            bio: user.bio
-          })
+        if (image.size > MAX_SIZE) return error(400, "IMAGE_MAX_SIZE_1MB_LIMIT")
 
-        return {
-          message: "User info updated successfully",
-          user: updatedUser
-        }
-      } catch (err) {
-        console.error("Error updating profile:", err)
-        return error(500, "Internal server error")
+        file = await insertFile(image)
+      }
+
+      const updatedUser = await db
+        .update(user)
+        .set({
+          bio: bio || sql`bio`,
+          image: file?.id || sql`image`,
+          updatedAt: new Date()
+        })
+        .where(eq(user.id, session.user.id))
+        .returning({
+          id: user.id,
+          name: user.name,
+          image: user.image,
+          bio: user.bio
+        })
+
+      return {
+        message: "User info updated successfully",
+        user: updatedUser
       }
     },
     {
@@ -162,23 +147,17 @@ export default new Elysia({ prefix: "/users" })
       error
     }: { params: { id: string }; error: Context["error"] }) => {
       const { id } = params
-      try {
-        const [userProfile] = await db
-          .select({ image: user.image, bio: user.bio })
-          .from(user)
-          .where(eq(user.id, id))
 
-        if (!userProfile) {
-          return error(404, "User not found")
-        }
+      const [userProfile] = await db
+        .select({ image: user.image, bio: user.bio })
+        .from(user)
+        .where(eq(user.id, id))
 
-        return {
-          image: userProfile.image || null,
-          bio: userProfile.bio || null
-        }
-      } catch (err) {
-        console.error("Error fetching user profile:", err)
-        return error(500, "Internal server error")
+      if (!userProfile) return error(404, "USER_NOT_FOUND")
+
+      return {
+        image: userProfile.image || null,
+        bio: userProfile.bio || null
       }
     },
     {

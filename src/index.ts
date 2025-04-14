@@ -12,7 +12,7 @@ import cors from "@elysiajs/cors"
 import { opentelemetry } from "@elysiajs/opentelemetry"
 import swagger from "@elysiajs/swagger"
 import { logger } from "@tqman/nice-logger"
-import { Elysia, t } from "elysia"
+import { Elysia, file } from "elysia"
 import { wsHandler } from "@/src/api/ws"
 
 export const app = new Elysia({
@@ -28,9 +28,6 @@ export const app = new Elysia({
     detail: {
       summary: "/",
       description: "The main entry point of the API. Uses as test."
-    },
-    response: {
-      200: t.String()
     }
   })
   .group(
@@ -61,20 +58,6 @@ export const app = new Elysia({
                   }
                 }
               }
-            },
-            response: {
-              200: t.Object({
-                token: t.String(),
-                user: t.Object({
-                  id: t.String(),
-                  name: t.String(),
-                  email: t.String()
-                })
-              }),
-              400: t.Object({
-                code: t.String(),
-                message: t.String()
-              })
             }
           }
         })
@@ -95,20 +78,6 @@ export const app = new Elysia({
                   }
                 }
               }
-            },
-            response: {
-              200: t.Object({
-                token: t.String(),
-                user: t.Object({
-                  id: t.String(),
-                  name: t.String(),
-                  email: t.String()
-                })
-              }),
-              400: t.Object({
-                code: t.String(),
-                message: t.String()
-              })
             }
           }
         })
@@ -119,13 +88,54 @@ export const app = new Elysia({
       // @ts-ignore
       beforeHandle: authMiddleware,
       detail: {
-        tags: ["authenticated"]
-      },
-      response: {
-        401: t.String({
-          description: "Unauthorized"
-        }),
-        500: t.Any({})
+        tags: ["authenticated"],
+        responses: {
+          200: {
+            description: "OK",
+            content: {
+              "application/json": {}
+            }
+          },
+          401: {
+            description: "Unauthorized",
+            content: {
+              "text/plain": {
+                schema: {
+                  type: "string"
+                }
+              }
+            }
+          },
+          422: {
+            description: "Unprocessable Entity",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    type: { type: "string" },
+                    errors: {
+                      type: "array",
+                      items: {
+                        type: "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          500: {
+            description: "Internal Server Error",
+            content: {
+              "text/plain": {
+                schema: {
+                  type: "string"
+                }
+              }
+            }
+          }
+        }
       }
     },
     (app) =>
@@ -140,7 +150,7 @@ export const app = new Elysia({
         .use(messageRoutes)
         .use(fileRoutes)
   )
-  .get("/favicon.ico", () => Bun.file("../../docs/app/icon.png"))
+  .get("/favicon.ico", () => file("../../docs/app/icon.png"))
   .listen(Bun.env.PORT || 3000)
 
 export type App = typeof app

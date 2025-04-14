@@ -122,7 +122,7 @@ export default new Elysia({ prefix: "/chats" })
       const userId = session.user.id
 
       const { page = 1, pageSize = 5, pinned: _pinned } = query
-      const pinned = _pinned === "true"
+      const pinned = typeof _pinned === "string" ? _pinned === "true" : null
 
       const offset = (Number(page) - 1) * pageSize
 
@@ -141,6 +141,7 @@ export default new Elysia({ prefix: "/chats" })
         .select({
           id: chat.id,
           type: chat.type,
+          pinned: chatUser.pinned,
           name: sql`
       CASE WHEN ${chat.type} = 'private' THEN (
         SELECT ${user.name}
@@ -176,7 +177,7 @@ export default new Elysia({ prefix: "/chats" })
         .where(
           and(
             eq(chatUser.userId, userId),
-            pinned ? eq(chatUser.pinned, true) : sql`true`
+            pinned != null ? eq(chatUser.pinned, pinned) : sql`true`
           )
         )
         .orderBy(desc(message.createdAt))
@@ -206,30 +207,18 @@ export default new Elysia({ prefix: "/chats" })
               "If true - only pinned chats will be returned. Default is false."
           })
         )
-      }),
-      response: {
-        200: t.Array(
-          t.Object({
-            id: t.String(),
-            name: t.String(),
-            type: t.Union([t.Literal("private"), t.Literal("group")]),
-            lastMessage: t.Object({})
-          }),
-          {
-            description:
-              "Array of chats with last message. If no chats found - empty array."
-          }
-        )
-      }
+      })
     }
   )
   .get(
     "/:id",
     async ({
       params,
-      request
+      request,
+      error
     }: {
       params: { id: string }
+      error: Context["error"]
       request: Context["request"]
     }) => {
       const chatId = params.id
@@ -258,7 +247,7 @@ export default new Elysia({ prefix: "/chats" })
         .where(eq(chat.id, chatId))
         .limit(1)
 
-      if (!chatDetails) throw new Error("Chat not found")
+      if (!chatDetails) return error(404, "CHAT_NOT_FOUND")
 
       return { chat: { ...chatDetails, participants } as ChatResponse }
     },
@@ -266,22 +255,6 @@ export default new Elysia({ prefix: "/chats" })
       detail: {
         description:
           "Get chat details by ID. Returns chat name, type and participants."
-      },
-      response: {
-        200: t.Object({
-          chat: t.Object({
-            id: t.String(),
-            name: t.String(),
-            type: t.Union([t.Literal("private"), t.Literal("group")]),
-            participants: t.Array(
-              t.Object({
-                userId: t.String(),
-                name: t.String(),
-                image: t.Union([t.Null(), t.String()])
-              })
-            )
-          })
-        })
       }
     }
   )
@@ -289,9 +262,11 @@ export default new Elysia({ prefix: "/chats" })
     "/fetch/:id",
     async ({
       params,
+      error,
       request
     }: {
       params: { id: string }
+      error: Context["error"]
       request: Context["request"]
     }) => {
       const { id } = params
@@ -349,6 +324,8 @@ export default new Elysia({ prefix: "/chats" })
         .where(and(eq(chatUser.userId, userId), eq(chat.id, id)))
         .limit(1)
 
+      if (!chatDetails) return error(404, "CHAT_NOT_FOUND")
+
       return {
         ...chatDetails,
         name: chatDetails.name as string
@@ -358,14 +335,6 @@ export default new Elysia({ prefix: "/chats" })
       detail: {
         description:
           "Fetch chat details by ID. Returns chat name, type and last message."
-      },
-      response: {
-        200: t.Object({
-          id: t.String(),
-          name: t.String(),
-          type: t.Union([t.Literal("private"), t.Literal("group")]),
-          lastMessage: t.Object({})
-        })
       }
     }
   )
@@ -373,9 +342,11 @@ export default new Elysia({ prefix: "/chats" })
     "/:id",
     async ({
       params,
+      error,
       request
     }: {
       params: { id: string }
+      error: Context["error"]
       request: Context["request"]
     }) => {
       const chatId = params.id
@@ -389,10 +360,7 @@ export default new Elysia({ prefix: "/chats" })
         .where(and(eq(chatUser.userId, userId), eq(chatUser.chatId, chatId)))
         .limit(1)
 
-      if (!chatDetails)
-        throw new Error(
-          "Chat not found or you do not have permission to delete it."
-        )
+      if (!chatDetails) return error(404, "CHAT_NOT_FOUND")
 
       const { type, role } = chatDetails
 
