@@ -17,7 +17,8 @@ export default new Elysia({ prefix: "files" }).get(
   },
   {
     detail: {
-      description: "Get a file by its ID."
+      description: "Get a file by its ID.",
+      tags: ["file"]
     }
   }
 )

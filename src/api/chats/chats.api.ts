@@ -436,7 +436,7 @@ export default new Elysia({ prefix: "/chats" })
       }
     }
   )
-  .post(
+  .put(
     "/:id",
     async ({
       params,
