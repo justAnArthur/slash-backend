@@ -43,10 +43,45 @@ export const app = new Elysia({
     },
     (app) =>
       app
+        .post("/sign-up/email", handleBetterAuthRoute, {
+          detail: {
+            description:
+              "Use this route to get a token that will be used in cookies.",
+            requestBody: {
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      name: { type: "string" },
+                      email: { type: "string" },
+                      password: { type: "string" }
+                    },
+                    required: ["name", "email", "password"]
+                  }
+                }
+              }
+            }
+          }
+        })
         .post("/sign-in/email", handleBetterAuthRoute, {
           detail: {
             description:
-              "Use this route to get a token that will be used in cookies."
+              "Use this route to get a token that will be used in cookies.",
+            requestBody: {
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      email: { type: "string" },
+                      password: { type: "string" }
+                    },
+                    required: ["email", "password"]
+                  }
+                }
+              }
+            }
           }
         })
         .all("/*", handleBetterAuthRoute)
