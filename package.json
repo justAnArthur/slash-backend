@@ -28,9 +28,13 @@
     "@elysiajs/jwt": "^1.0.2",
     "@elysiajs/swagger": "^1.2.2",
     "@tqman/nice-logger": "^1.1.1",
+    "@types/qrcode": "^1.5.5",
+    "@types/speakeasy": "^2.0.10",
     "drizzle-orm": "^0.30.9",
     "drizzle-typebox": "^0.1.1",
-    "elysia": "^1.0.14"
+    "elysia": "^1.0.14",
+    "qrcode": "^1.5.4",
+    "speakeasy": "^2.0.0"
   },
   "devDependencies": {
     "@elysiajs/opentelemetry": "^1.2.0",
