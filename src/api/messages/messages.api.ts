@@ -92,48 +92,18 @@ export default new Elysia({ prefix: "messages" })
       query: t.Object({
         page: t.Number({ default: 1 }),
         pageSize: t.Number({ default: 20 })
-      }),
-      response: {
-        200: t.Object({
-          messages: t.Array(
-            t.Object({
-              id: t.String(),
-              content: t.Union([t.String(), t.Null()]),
-              type: t.String({
-                description:
-                  "The type of the message. Can be TEXT, IMAGE, or LOCATION."
-              }),
-              senderId: t.String(),
-              createdAt: t.Any(),
-              name: t.Nullable(t.String()),
-              image: t.Any(),
-              attachments: t.Array(
-                t.Object({
-                  id: t.String(),
-                  messageId: t.String(),
-                  IMAGEFileId: t.Union([t.String(), t.Null()]),
-                  JSON: t.Union([t.String(), t.Null()])
-                })
-              )
-            })
-          ),
-          pagination: t.Object({
-            total: t.Number(),
-            page: t.Number(),
-            pageSize: t.Number(),
-            totalPages: t.Number()
-          })
-        })
-      }
+      })
     }
   )
   .post(
     "/:chatId",
     async ({
       params: { chatId },
+      error,
       request
     }: {
       params: { chatId: string }
+      error: Context["error"]
       request: Context["request"]
     }) => {
       const session = await checkAndGetSession(request.headers)
@@ -147,13 +117,13 @@ export default new Elysia({ prefix: "messages" })
       console.log([...formData.keys()])
       console.log("insertedMessage", _content)
 
-      if (!_content) throw new Error("Content is required")
+      if (!_content) error(400, "CONTENT_IS_REQUIRED")
 
       const messageValues = {
         chatId,
         senderId,
         type,
-        content: type === MessageType.TEXT ? _content.toString() : null
+        content: type === MessageType.TEXT ? _content?.toString() : null
       } as Message
 
       const [insertedMessage] = await db
@@ -171,6 +141,7 @@ export default new Elysia({ prefix: "messages" })
       switch (type) {
         case MessageType.IMAGE: {
           const file = await insertFile(_content as File)
+
           const [attachment] = await db
             .insert(messageAttachment)
             .values({
@@ -205,6 +176,7 @@ export default new Elysia({ prefix: "messages" })
           break
         }
       }
+
       const [sender] = await db
         .select({
           name: user.name,
@@ -213,6 +185,7 @@ export default new Elysia({ prefix: "messages" })
         .from(user)
         .where(eq(user.id, senderId))
         .limit(1)
+
       // @ts-ignore
       const fullMessage: MessageResponse = {
         ...insertedMessage,
@@ -225,24 +198,25 @@ export default new Elysia({ prefix: "messages" })
     },
     {
       detail: {
-        description: "Create a new message."
+        description: "Create a new message.",
+        requestBody: {
+          content: {
+            "multipart/form-data": {
+              schema: {
+                type: "object",
+                properties: {
+                  type: { type: "string", enum: ["TEXT", "IMAGE", "LOCATION"] },
+                  content: { type: "string" }
+                },
+                required: ["type", "content"]
+              }
+            }
+          }
+        }
       },
       params: t.Object({
         chatId: t.String()
-      }),
-      body: t.Object(
-        {
-          type: t.Union([
-            t.Literal("TEXT"),
-            t.Literal("IMAGE"),
-            t.Literal("LOCATION")
-          ]),
-          content: t.Union([t.String(), t.File()])
-        },
-        {
-          description: "FormData with type and content."
-        }
-      )
+      })
     }
   )
 
