@@ -3,8 +3,7 @@ import { user } from "@/src/api/users/users.schema"
 import db from "@/src/db/connection"
 import { checkAndGetSession } from "@/src/lib/auth"
 import { and, eq, like, ne, sql } from "drizzle-orm"
-import type { Context } from "elysia"
-import Elysia from "elysia"
+import Elysia, { type Context, t } from "elysia"
 
 export default new Elysia({ prefix: "/users" })
   .get(
@@ -40,29 +39,59 @@ export default new Elysia({ prefix: "/users" })
         )
         .limit(pageSize)
         .offset(offset)
+    },
+    {
+      detail: {
+        description:
+          "Search for users by name. Returns a paginated list of users."
+      },
+      query: t.Object({
+        q: t.String({ required: true }),
+        page: t.Number({ required: false }),
+        pageSize: t.Number({ required: false })
+      }),
+      response: {
+        200: t.Array(
+          t.Object({
+            id: t.String(),
+            name: t.String(),
+            image: t.Nullable(t.String()),
+            email: t.String()
+          })
+        )
+      }
     }
   )
   .get(
     "/:id",
     async ({
       params,
-      error
-    }: { params: { id: string }; error: Context["error"] }) => {
+      error,
+      request
+    }: {
+      params: { id: string }
+      error: Context["error"]
+      request: Context["request"]
+    }) => {
+      await checkAndGetSession(request.headers)
       const { id } = params
-      try {
-        const [userToReturn] = await db
-          .select({ id: user.id, name: user.name, image: user.image })
-          .from(user)
-          .where(eq(user.id, id))
 
-        if (!userToReturn) {
-          return error(404, "User not found")
-        }
-        return userToReturn
-      } catch (err) {
-        console.error("Error fetching user:", err)
-        return error(500, "Internal server error")
-      }
+      const [userToReturn] = await db
+        .select({ id: user.id, name: user.name, image: user.image })
+        .from(user)
+        .where(eq(user.id, id))
+
+      if (!userToReturn) throw new Error("Unauthorized")
+
+      return userToReturn
+    },
+    {
+      detail: {
+        description: "Get user by ID."
+      },
+      params: t.Object({
+        id: t.String({ required: true })
+      })
     }
   )
   .post(
@@ -114,6 +143,16 @@ export default new Elysia({ prefix: "/users" })
         console.error("Error updating profile:", err)
         return error(500, "Internal server error")
       }
+    },
+    {
+      detail: {
+        description: "Update user profile information.",
+        tags: ["file"]
+      },
+      body: t.Object({
+        image: t.Any(),
+        bio: t.Optional(t.String())
+      })
     }
   )
   .get(
@@ -141,5 +180,13 @@ export default new Elysia({ prefix: "/users" })
         console.error("Error fetching user profile:", err)
         return error(500, "Internal server error")
       }
+    },
+    {
+      detail: {
+        description: "Get user profile information by ID."
+      },
+      params: t.Object({
+        id: t.String({ required: true })
+      })
     }
   )

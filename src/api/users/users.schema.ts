@@ -9,10 +9,11 @@ export const user = sqliteTable("user", {
   emailVerified: integer("emailVerified", {
     mode: "boolean"
   }).notNull(),
-
   image: text("image"),
   bio: text("bio"),
-
+  twoFactorEnabled: integer("twoFactorEnabled", { mode: "boolean" })
+    .notNull()
+    .default(false),
   createdAt: integer("createdAt", {
     mode: "timestamp"
   })

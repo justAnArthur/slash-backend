@@ -1,4 +1,5 @@
 import { expo } from "@better-auth/expo"
+import { twoFactor } from "better-auth/plugins"
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import db from "../../db/connection"
@@ -7,7 +8,7 @@ import * as authSchema from "../../db/schema.auth"
 export const auth = betterAuth({
   //trustedOrigins: ["slash://", Bun.env.FRONTEND_URL!],
   trustedOrigins: ["slash://", "*"],
-  plugins: [expo()],
+  plugins: [expo(), twoFactor()],
   emailAndPassword: {
     enabled: true,
     autoSignIn: true,

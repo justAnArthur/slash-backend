@@ -79,3 +79,14 @@ export const verification = sqliteTable("verification", {
     .notNull()
     .$onUpdateFn(() => new Date())
 })
+export const twoFactor = sqliteTable("twoFactor", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => Bun.randomUUIDv7()),
+
+  userId: text("userId")
+    .notNull()
+    .references(() => user.id),
+  secret: text("secret"),
+  backupCodes: text("backupCodes")
+})
