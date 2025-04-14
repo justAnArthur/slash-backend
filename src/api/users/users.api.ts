@@ -146,7 +146,8 @@ export default new Elysia({ prefix: "/users" })
     },
     {
       detail: {
-        description: "Update user profile information."
+        description: "Update user profile information.",
+        tags: ["file"]
       },
       body: t.Object({
         image: t.Any(),
