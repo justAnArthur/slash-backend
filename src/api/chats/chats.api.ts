@@ -15,6 +15,7 @@ import type {
   MessageResponse
 } from "../messages/messages.api"
 import { chat, chatUser } from "./chats.schema"
+import { notifyChatUsers } from "@/src/api/chats/push-message"
 
 interface CreateChatRequest {
   userIds: string[]
@@ -87,6 +88,11 @@ export default new Elysia({ prefix: "/chats" })
       ])
 
       subscribeUsersToChat(newChat.id, [...userIds, userId])
+      // noinspection ES6MissingAwait
+      notifyChatUsers(newChat.id, userId, {
+        title: name,
+        body: "CHAT_IS_CREATED" // todo
+      })
 
       return { chatId: newChat.id }
     },
