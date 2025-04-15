@@ -18,9 +18,10 @@ function mapMessageToPushMessage(message: MessageResponse): PushMessage {
 export async function notifyChatUsers(
   chatId: string,
   senderId: string,
-  message: MessageResponse
+  message: MessageResponse | PushMessage
 ) {
-  const pushMessage = mapMessageToPushMessage(message)
+  const pushMessage =
+    "id" in message ? mapMessageToPushMessage(message) : message
 
   const pushTokens = await db
     .select({ pushToken: device.pushToken })
