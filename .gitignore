@@ -39,3 +39,4 @@ sqlite/*.sqlite-wal
 /.env
 /.env.local
 /uploads/
+/server.exe

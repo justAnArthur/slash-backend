@@ -28,68 +28,65 @@ export default new Elysia({ prefix: "/chats" })
     "/",
     async ({
       body,
-      request
+      request,
+      error
     }: {
       body: CreateChatRequest
-      request: Context["request"]
-    }) => {
-      try {
-        const session = await checkAndGetSession(request.headers)
-        const userId = session.user.id as string
-        const { userIds, name } = body
+    } & Context) => {
+      const session = await checkAndGetSession(request.headers)
+      const userId = session.user.id as string
+      const { userIds, name } = body
 
-        const chatType = (
-          userIds.length === 1 ? "private" : "group"
-        ) as ChatType
+      const chatType = (userIds.length === 1 ? "private" : "group") as ChatType
 
-        if (chatType === "private") {
-          const [existingChat] = await db
-            .select()
-            .from(chat)
-            .innerJoin(chatUser, eq(chat.id, chatUser.chatId))
-            .where(
-              and(
-                eq(chat.type, "private"),
-                inArray(chatUser.userId, [userId, userIds[0]]),
-                exists(
-                  db
-                    .select({ count: count() })
-                    .from(chatUser)
-                    .where(
-                      and(
-                        eq(chatUser.chatId, chat.id),
-                        inArray(chatUser.userId, [userId, userIds[0]])
-                      )
+      if (chatType === "private") {
+        const [existingChat] = await db
+          .select()
+          .from(chat)
+          .innerJoin(chatUser, eq(chat.id, chatUser.chatId))
+          .where(
+            and(
+              eq(chat.type, "private"),
+              inArray(chatUser.userId, [userId, userIds[0]]),
+              exists(
+                db
+                  .select({ count: count() })
+                  .from(chatUser)
+                  .where(
+                    and(
+                      eq(chatUser.chatId, chat.id),
+                      inArray(chatUser.userId, [userId, userIds[0]])
                     )
-                    .groupBy(chatUser.chatId)
-                    .having(eq(count(), 2))
-                )
+                  )
+                  .groupBy(chatUser.chatId)
+                  .having(eq(count(), 2))
               )
             )
-            .limit(1)
+          )
+          .limit(1)
 
-          if (existingChat) return { chatId: existingChat.chat.id }
-        }
+        if (!existingChat) return error(500)
 
-        const [newChat] = await db
-          .insert(chat)
-          .values({ type: chatType, name })
-          .returning({ id: chat.id })
-
-        await db.insert(chatUser).values([
-          ...userIds.map((id) => ({
-            chatId: newChat.id,
-            userId: id,
-            role: "member" as const
-          })),
-          { chatId: newChat.id, userId, role: "admin" as const }
-        ])
-
-        subscribeUsersToChat(newChat.id, [...userIds, userId])
-        return { chatId: newChat.id }
-      } catch (error) {
-        console.error(error)
+        return { chatId: existingChat.chat.id }
       }
+
+      const [newChat] = await db
+        .insert(chat)
+        .values({ type: chatType, name })
+        .returning({ id: chat.id })
+
+      await db.insert(chatUser).values([
+        ...userIds.map((id) => ({
+          chatId: newChat.id,
+          userId: id,
+          role: "member" as const
+        })),
+        { chatId: newChat.id, userId, role: "admin" as const }
+      ])
+
+      subscribeUsersToChat(newChat.id, [...userIds, userId])
+
+      return { chatId: newChat.id }
     },
     {
       detail: {
