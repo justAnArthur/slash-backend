@@ -27,18 +27,20 @@ type ChatType = "private" | "group"
 export default new Elysia({ prefix: "/chats" })
   .post(
     "/",
-    async ({
-      body,
-      request,
-      error
-    }: {
-      body: CreateChatRequest
-    } & Context) => {
+    async ({ body, request, error }) => {
       const session = await checkAndGetSession(request.headers)
       const userId = session.user.id as string
       const { userIds, name } = body
 
       const chatType = (userIds.length === 1 ? "private" : "group") as ChatType
+
+      const usersByUserIds = await db
+        .select({ id: user.id })
+        .from(user)
+        .where(inArray(user.id, userIds))
+
+      if (usersByUserIds.length !== userIds.length)
+        throw error(400, "USER_NOT_FOUND")
 
       if (chatType === "private") {
         const [existingChat] = await db
@@ -108,7 +110,7 @@ export default new Elysia({ prefix: "/chats" })
             "Array of user IDs. When one multiple IDs are provided - group chat type is used."
         }),
         name: t.String({
-          minLength: 3,
+          minLength: 1,
           description: "Name of chat."
         })
       })

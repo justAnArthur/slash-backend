@@ -3,12 +3,11 @@ import { file } from "@/src/db/schema"
 import { Elysia } from "elysia"
 
 export default new Elysia({ prefix: "files" }).get(
-  "/:fileId",
-  async ({ params: { fileId }, set, error }) => {
-    const file = await getFileById(fileId)
-    if (!file) throw error(404, "File not found")
+  "/:id",
+  async ({ params: { id }, set, error }) => {
+    const file = await getFileById(id)
 
-    console.log("file", file)
+    if (!file || !(await file.exists())) return error(404, "File not found")
 
     set.headers["Content-Type"] = file.type || "application/octet-stream"
     set.headers["Content-Disposition"] = `attachment; filename="${file.name}"`
