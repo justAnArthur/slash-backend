@@ -25,3 +25,26 @@ export const user = sqliteTable("user", {
     .notNull()
     .$onUpdateFn(() => new Date())
 })
+
+export const device = sqliteTable("device", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => Bun.randomUUIDv7()),
+  userId: text("userId")
+    .notNull()
+    .references(() => user.id),
+  createdAt: integer("createdAt", {
+    mode: "timestamp"
+  })
+    .notNull()
+    .$defaultFn(() => new Date()),
+
+  pushToken: text("pushToken").notNull(),
+
+  brand: text("brand"),
+  model: text("model"),
+  osName: text("osName"),
+  osVersion: text("osVersion"),
+  deviceName: text("deviceName"),
+  deviceYear: text("deviceYear")
+})
