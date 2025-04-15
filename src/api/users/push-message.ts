@@ -50,3 +50,5 @@ export type ExpoPushMessage = {
   mutableContent?: boolean
   _contentAvailable?: boolean
 }
+
+export type PushMessage = Omit<ExpoPushMessage, "to">

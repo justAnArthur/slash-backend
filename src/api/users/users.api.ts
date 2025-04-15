@@ -72,7 +72,7 @@ export default new Elysia({ prefix: "/users" })
         .from(user)
         .where(eq(user.id, id))
 
-      if (!userToReturn) return error(404, "USER_NOT_FOUND")
+      if (!userToReturn) throw error(404, "USER_NOT_FOUND")
 
       return userToReturn
     },
@@ -105,7 +105,7 @@ export default new Elysia({ prefix: "/users" })
       if (image) {
         const MAX_SIZE = 1_048_576
 
-        if (image.size > MAX_SIZE) return error(400, "IMAGE_MAX_SIZE_1MB_LIMIT")
+        if (image.size > MAX_SIZE) throw error(400, "IMAGE_MAX_SIZE_1MB_LIMIT")
 
         file = await insertFile(image)
       }
@@ -154,7 +154,7 @@ export default new Elysia({ prefix: "/users" })
         .from(user)
         .where(eq(user.id, id))
 
-      if (!userProfile) return error(404, "USER_NOT_FOUND")
+      if (!userProfile) throw error(404, "USER_NOT_FOUND")
 
       return {
         image: userProfile.image || null,

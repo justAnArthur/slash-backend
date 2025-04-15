@@ -1,5 +1,6 @@
 import type { MessageResponse } from "@/src/api/messages/messages.api"
 import type { ElysiaWS } from "elysia/dist/ws"
+import { ExpoPushMessage, type PushMessage } from "@/src/api/users/push-message"
 
 export type ChatSubscriptions = Map<string, Set<ElysiaWS>>
 
@@ -7,6 +8,7 @@ export const chatSubscriptions: ChatSubscriptions = new Map()
 
 export function broadcastMessage(chatId: string, message: MessageResponse) {
   const subscribers = chatSubscriptions.get(chatId)
+
   if (!subscribers) return
 
   const payload = JSON.stringify({
@@ -20,6 +22,7 @@ export function broadcastMessage(chatId: string, message: MessageResponse) {
     ws.send(payload)
   }
 }
+
 export function subscribeUsersToChat(chatId: string, userIds: string[]) {
   if (!chatSubscriptions.has(chatId)) {
     chatSubscriptions.set(chatId, new Set())
@@ -35,6 +38,7 @@ export function subscribeUsersToChat(chatId: string, userIds: string[]) {
     }
   }
 }
+
 export function unsubscribeUserFromChat(chatId: string, userId: string) {
   const subscribers = chatSubscriptions.get(chatId)
   if (!subscribers) return

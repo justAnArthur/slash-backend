@@ -6,7 +6,7 @@ export default new Elysia({ prefix: "files" }).get(
   "/:fileId",
   async ({ params: { fileId }, set, error }) => {
     const file = await getFileById(fileId)
-    if (!file) return error(404, "File not found")
+    if (!file) throw error(404, "File not found")
 
     console.log("file", file)
 

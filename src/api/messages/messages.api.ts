@@ -2,9 +2,10 @@ import { insertFile } from "@/src/api/file/files.api"
 import { db } from "@/src/db/connection"
 import { type Message, message, messageAttachment, user } from "@/src/db/schema"
 import { checkAndGetSession } from "@/src/lib/auth"
-import { broadcastMessage } from "@/src/lib/chat.state"
+import { broadcastMessage } from "@/src/api/chats/chats.state"
 import { desc, eq, inArray, sql } from "drizzle-orm"
 import { type Context, Elysia, t } from "elysia"
+import { notifyChatUsers } from "@/src/api/chats/push-message"
 
 export default new Elysia({ prefix: "messages" })
   .get(
@@ -113,10 +114,6 @@ export default new Elysia({ prefix: "messages" })
       const type = formData.get("type")
       const _content = formData.get("content")
 
-      // @ts-ignore
-      console.log([...formData.keys()])
-      console.log("insertedMessage", _content)
-
       if (!_content) error(400, "CONTENT_IS_REQUIRED")
 
       const messageValues = {
@@ -193,7 +190,11 @@ export default new Elysia({ prefix: "messages" })
         name: sender.name,
         image: sender.image
       }
+
       broadcastMessage(chatId, fullMessage)
+      // noinspection ES6MissingAwait
+      notifyChatUsers(chatId, senderId, fullMessage)
+
       return fullMessage
     },
     {
