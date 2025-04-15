@@ -7,7 +7,7 @@ import {
   subscribeUsersToChat,
   unsubscribeAllFromChat,
   unsubscribeUserFromChat
-} from "@/src/lib/chat.state"
+} from "@/src/api/chats/chats.state"
 import { and, count, desc, eq, exists, inArray, ne, sql } from "drizzle-orm"
 import Elysia, { type Context, t } from "elysia"
 import type {
@@ -65,9 +65,7 @@ export default new Elysia({ prefix: "/chats" })
           )
           .limit(1)
 
-        if (!existingChat) return error(500)
-
-        return { chatId: existingChat.chat.id }
+        if (existingChat) return { chatId: existingChat.chat.id }
       }
 
       const [newChat] = await db
@@ -81,7 +79,11 @@ export default new Elysia({ prefix: "/chats" })
           userId: id,
           role: "member" as const
         })),
-        { chatId: newChat.id, userId, role: "admin" as const }
+        {
+          chatId: newChat.id,
+          userId,
+          role: "admin" as const
+        }
       ])
 
       subscribeUsersToChat(newChat.id, [...userIds, userId])
@@ -244,7 +246,7 @@ export default new Elysia({ prefix: "/chats" })
         .where(eq(chat.id, chatId))
         .limit(1)
 
-      if (!chatDetails) return error(404, "CHAT_NOT_FOUND")
+      if (!chatDetails) throw error(404, "CHAT_NOT_FOUND")
 
       return { chat: { ...chatDetails, participants } as ChatResponse }
     },
@@ -321,7 +323,7 @@ export default new Elysia({ prefix: "/chats" })
         .where(and(eq(chatUser.userId, userId), eq(chat.id, id)))
         .limit(1)
 
-      if (!chatDetails) return error(404, "CHAT_NOT_FOUND")
+      if (!chatDetails) throw error(404, "CHAT_NOT_FOUND")
 
       return {
         ...chatDetails,
@@ -357,7 +359,7 @@ export default new Elysia({ prefix: "/chats" })
         .where(and(eq(chatUser.userId, userId), eq(chatUser.chatId, chatId)))
         .limit(1)
 
-      if (!chatDetails) return error(404, "CHAT_NOT_FOUND")
+      if (!chatDetails) throw error(404, "CHAT_NOT_FOUND")
 
       const { type, role } = chatDetails
 

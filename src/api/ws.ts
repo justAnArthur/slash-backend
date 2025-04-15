@@ -1,6 +1,6 @@
 import { chatUser } from "@/src/api/chats/chats.schema"
 import { db } from "@/src/db/connection"
-import { chatSubscriptions } from "@/src/lib/chat.state"
+import { chatSubscriptions } from "@/src/api/chats/chats.state"
 import { eq } from "drizzle-orm"
 import Elysia from "elysia"
 
@@ -26,6 +26,7 @@ export const wsHandler = new Elysia().ws("/ws", {
     }
   },
   close(ws) {
+    // @ts-ignore
     for (const [chatId, subs] of chatSubscriptions) {
       if (subs.has(ws)) {
         subs.delete(ws)
