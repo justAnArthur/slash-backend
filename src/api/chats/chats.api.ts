@@ -1,4 +1,4 @@
-import { message } from "@/src/api/messages/messages.schema"
+import { message, messageAttachment } from "@/src/api/messages/messages.schema"
 import { user } from "@/src/api/users/users.schema"
 import db from "@/src/db/connection"
 import { checkAndGetSession } from "@/src/lib/auth"
@@ -446,6 +446,79 @@ export default new Elysia({ prefix: "/chats" })
       })
     }
   )
+  .get(
+    "/:id/info",
+    async ({
+      params,
+      error,
+      request
+    }: {
+      params: { id: string }
+      error: Context["error"]
+      request: Context["request"]
+    }) => {
+      const chatId = params.id
+      const session = await checkAndGetSession(request.headers)
+      const userId = session.user.id
+
+      // Verify user is part of the chat
+      const [chatDetails] = await db
+        .select({
+          id: chat.id,
+          createdAt: chat.createdAt
+        })
+        .from(chat)
+        .innerJoin(chatUser, eq(chat.id, chatUser.chatId))
+        .where(and(eq(chat.id, chatId), eq(chatUser.userId, userId)))
+        .limit(1)
+
+      if (!chatDetails) throw error(404, "CHAT_NOT_FOUND")
+
+      // Get total message count
+      const [messageCount] = await db
+        .select({ count: count() })
+        .from(message)
+        .where(eq(message.chatId, chatId))
+
+      // Get all attachments
+      const attachmentIds = await db
+        .select({
+          id: messageAttachment.IMAGEFileId
+        })
+        .from(message)
+        .innerJoin(
+          messageAttachment,
+          eq(message.id, messageAttachment.messageId)
+        )
+        .where(and(eq(message.chatId, chatId), eq(message.type, "IMAGE")))
+
+      console.log(attachmentIds)
+      return {
+        chatId: chatDetails.id,
+        createdAt: new Date(chatDetails.createdAt).toString(),
+        totalMessages: messageCount.count,
+        attachmentIds: attachmentIds.map((att) => att.id)
+      }
+    },
+    {
+      detail: {
+        description:
+          "Get chat information including creation date, total message count, and IDs of messages with attachments."
+      },
+      response: t.Object({
+        chatId: t.String({ description: "The ID of the chat" }),
+        createdAt: t.String({
+          description: "When the chat was created (ISO string)"
+        }),
+        totalMessages: t.Number({
+          description: "Total number of messages in the chat"
+        }),
+        attachmentIds: t.Array(t.String(), {
+          description: "Array of message IDs that contain attachments"
+        })
+      })
+    }
+  )
 
 export type ChatResponse = {
   id: string
@@ -461,4 +534,10 @@ export type ChatListResponse = {
   image: string | null
   type: "group" | "private"
   lastMessage: MessageResponse
+}
+export type ChatInfoResponse = {
+  chatId: string
+  createdAt: string
+  totalMessages: number
+  attachmentIds: string[]
 }
