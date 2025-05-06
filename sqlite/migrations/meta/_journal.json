@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "5",
-      "when": 1743774726680,
-      "tag": "0000_lame_outlaw_kid",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1743948757161,
-      "tag": "0001_ordinary_veda",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1744714457870,
-      "tag": "0002_concerned_charles_xavier",
+      "when": 1746530786487,
+      "tag": "0000_young_typhoid_mary",
       "breakpoints": true
     }
   ]
