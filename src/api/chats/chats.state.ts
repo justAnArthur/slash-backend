@@ -1,14 +1,20 @@
 import type { MessageResponse } from "@/src/api/messages/messages.api"
-import type { ElysiaWS } from "elysia/dist/ws"
+import type { ChatListResponse } from "@/src/api/chats/chats.api" // Import ChatListResponse
+import type { ElysiaWS, WSContext } from "elysia" // Ensure ElysiaWS type is imported
 import { ExpoPushMessage, type PushMessage } from "@/src/api/users/push-message"
 
-export type ChatSubscriptions = Map<string, Set<ElysiaWS>>
+// Define ElysiaWS type for WebSocket context
+interface WebSocketData {
+  query: { id: string } // User ID from query parameter
+}
+
+export type ChatSubscriptions = Map<string, Set<ElysiaWS<WebSocketData>>>
 
 export const chatSubscriptions: ChatSubscriptions = new Map()
 
+// Broadcast a new message to all subscribers of a chat
 export function broadcastMessage(chatId: string, message: MessageResponse) {
   const subscribers = chatSubscriptions.get(chatId)
-
   if (!subscribers) return
 
   const payload = JSON.stringify({
@@ -17,19 +23,18 @@ export function broadcastMessage(chatId: string, message: MessageResponse) {
     message
   })
 
-  // @ts-ignore
   for (const ws of subscribers) {
     ws.send(payload)
   }
 }
 
+// Subscribe users to a chat
 export function subscribeUsersToChat(chatId: string, userIds: string[]) {
   if (!chatSubscriptions.has(chatId)) {
     chatSubscriptions.set(chatId, new Set())
   }
   const chatSubscribers = chatSubscriptions.get(chatId)!
 
-  // @ts-ignore
   for (const [_, subscribers] of chatSubscriptions) {
     for (const ws of subscribers) {
       if (userIds.includes(ws.data.query.id)) {
@@ -39,11 +44,11 @@ export function subscribeUsersToChat(chatId: string, userIds: string[]) {
   }
 }
 
+// Unsubscribe a user from a chat
 export function unsubscribeUserFromChat(chatId: string, userId: string) {
   const subscribers = chatSubscriptions.get(chatId)
   if (!subscribers) return
 
-  // @ts-ignore
   for (const ws of subscribers) {
     if (ws.data.query.id === userId) {
       subscribers.delete(ws)
@@ -56,6 +61,7 @@ export function unsubscribeUserFromChat(chatId: string, userId: string) {
   }
 }
 
+// Unsubscribe all users from a chat and notify them
 export function unsubscribeAllFromChat(chatId: string) {
   const subscribers = chatSubscriptions.get(chatId)
   if (!subscribers) return
@@ -65,9 +71,24 @@ export function unsubscribeAllFromChat(chatId: string) {
     chatId
   })
 
-  // @ts-ignore
   for (const ws of subscribers) {
     ws.send(payload)
   }
   chatSubscriptions.delete(chatId)
+}
+
+// Initialize WebSocket connection for a user
+export function initializeUserSubscription(
+  ws: ElysiaWS<WebSocketData>,
+  chatIds: string[]
+) {
+  const userId = ws.data.query.id
+
+  // Subscribe the WebSocket connection to all relevant chats
+  for (const chatId of chatIds) {
+    if (!chatSubscriptions.has(chatId)) {
+      chatSubscriptions.set(chatId, new Set())
+    }
+    chatSubscriptions.get(chatId)!.add(ws)
+  }
 }

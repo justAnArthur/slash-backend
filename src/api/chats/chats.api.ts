@@ -90,6 +90,26 @@ export default new Elysia({ prefix: "/chats" })
       ])
 
       subscribeUsersToChat(newChat.id, [...userIds, userId])
+
+      const [systemMessage] = await db
+        .insert(message)
+        .values({
+          chatId: newChat.id,
+          senderId: "SYSTEM",
+          type: "TEXT" as const,
+          content: `Chat was created`
+        })
+        .returning()
+
+      // @ts-ignore
+      const fullMessage: MessageResponse = {
+        ...systemMessage,
+        attachments: [] as MessageAttachmentResponse[],
+        name: "Info",
+        image: null
+      }
+      broadcastMessage(newChat.id, fullMessage)
+
       // noinspection ES6MissingAwait
       notifyChatUsers(newChat.id, userId, {
         title: name,
