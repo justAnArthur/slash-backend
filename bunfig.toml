@@ -1,10 +1,4 @@
-<<<<<<< HEAD
 [test]
 root = "./test"
 preload = ["./test/setup/index.ts"]
-=======
-[test]
-root = "./test"
-preload = ["./test/setup/index.ts"]
->>>>>>> f1512508ccdd0b385954abcb99defa0a11f24a35
 coverage = false
