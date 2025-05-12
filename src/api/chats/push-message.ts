@@ -1,12 +1,12 @@
+import { chatUser } from "@/src/api/chats/chats.schema"
 import type { MessageResponse } from "@/src/api/messages/messages.api"
 import {
   type PushMessage,
   sendPushNotification
 } from "@/src/api/users/push-message"
-import db from "@/src/db/connection"
-import { chatUser } from "@/src/api/chats/chats.schema"
-import { and, eq, isNotNull, ne } from "drizzle-orm"
 import { device } from "@/src/api/users/users.schema"
+import db from "@/src/db/connection"
+import { and, eq, isNotNull, ne } from "drizzle-orm"
 
 function mapMessageToPushMessage(message: MessageResponse): PushMessage {
   return {
@@ -20,6 +20,13 @@ export async function notifyChatUsers(
   senderId: string,
   message: MessageResponse | PushMessage
 ) {
+  const [chatUserEntity] = await db
+    .select({ muted: chatUser.muted })
+    .from(chatUser)
+    .where(and(eq(chatUser.chatId, chatId), eq(chatUser.userId, senderId)))
+
+  if (chatUserEntity.muted) return
+
   const pushMessage =
     "id" in message ? mapMessageToPushMessage(message) : message
 
