@@ -446,8 +446,7 @@ export default new Elysia({ prefix: "/chats" })
       await checkAndGetSession(request.headers)
       const chatId = params.id
 
-      if (Object.values(body).length === 0)
-        await db.update(chatUser).set(body).where(eq(chatUser.chatId, chatId))
+      await db.update(chatUser).set(body).where(eq(chatUser.chatId, chatId))
     },
     {
       detail: {
@@ -458,6 +457,11 @@ export default new Elysia({ prefix: "/chats" })
         pinned: t.Optional(
           t.Boolean({
             description: "If true - chat will be pinned."
+          })
+        ),
+        muted: t.Optional(
+          t.Boolean({
+            description: "If true - chat would be muted"
           })
         )
       })
