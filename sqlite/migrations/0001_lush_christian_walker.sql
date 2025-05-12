@@ -1,0 +1,1 @@
+ALTER TABLE chat_user ADD `muted` integer DEFAULT false NOT NULL;
