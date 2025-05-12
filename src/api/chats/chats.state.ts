@@ -1,7 +1,5 @@
 import type { MessageResponse } from "@/src/api/messages/messages.api"
-import type { ChatListResponse } from "@/src/api/chats/chats.api" // Import ChatListResponse
-import type { ElysiaWS, WSContext } from "elysia" // Ensure ElysiaWS type is imported
-import { ExpoPushMessage, type PushMessage } from "@/src/api/users/push-message"
+import type { ElysiaWS } from "elysia" // Ensure ElysiaWS type is imported
 
 // Define ElysiaWS type for WebSocket context
 interface WebSocketData {
@@ -19,7 +17,7 @@ export const userWebSockets: Map<
 // Broadcast a new message to all subscribers of a chat
 export function broadcastMessage(chatId: string, message: MessageResponse) {
   const subscribers = chatSubscriptions.get(chatId)
-  console.log(subscribers)
+
   if (!subscribers) return
 
   const payload = JSON.stringify({

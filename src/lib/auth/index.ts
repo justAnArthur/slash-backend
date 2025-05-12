@@ -25,20 +25,6 @@ export const auth = betterAuth({
       partitioned: true
     }
   }
-  // socialProviders: {
-  //   /*
-  //    * We're using Google and Github as our social provider,
-  //    * make sure you have set your environment variables
-  //    */
-  //   github: {
-  //     clientId: process.env.GITHUB_CLIENT_ID!,
-  //     clientSecret: process.env.GITHUB_CLIENT_SECRET!
-  //   },
-  //   google: {
-  //     clientId: process.env.GOOGLE_CLIENT_ID!,
-  //     clientSecret: process.env.GOOGLE_CLIENT_SECRET!
-  //   }
-  // }
 })
 
 export async function checkAndGetSession(headers: Headers) {
