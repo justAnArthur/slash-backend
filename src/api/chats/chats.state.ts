@@ -11,10 +11,15 @@ interface WebSocketData {
 export type ChatSubscriptions = Map<string, Set<ElysiaWS<WebSocketData>>>
 
 export const chatSubscriptions: ChatSubscriptions = new Map()
+export const userWebSockets: Map<
+  string,
+  Set<ElysiaWS<WebSocketData>>
+> = new Map()
 
 // Broadcast a new message to all subscribers of a chat
 export function broadcastMessage(chatId: string, message: MessageResponse) {
   const subscribers = chatSubscriptions.get(chatId)
+  console.log(subscribers)
   if (!subscribers) return
 
   const payload = JSON.stringify({
@@ -33,11 +38,13 @@ export function subscribeUsersToChat(chatId: string, userIds: string[]) {
   if (!chatSubscriptions.has(chatId)) {
     chatSubscriptions.set(chatId, new Set())
   }
+
   const chatSubscribers = chatSubscriptions.get(chatId)!
 
-  for (const [_, subscribers] of chatSubscriptions) {
-    for (const ws of subscribers) {
-      if (userIds.includes(ws.data.query.id)) {
+  for (const userId of userIds) {
+    const userSockets = userWebSockets.get(userId)
+    if (userSockets) {
+      for (const ws of userSockets) {
         chatSubscribers.add(ws)
       }
     }
