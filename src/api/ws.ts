@@ -1,6 +1,6 @@
 import { chatUser } from "@/src/api/chats/chats.schema"
 import { db } from "@/src/db/connection"
-import { chatSubscriptions } from "@/src/api/chats/chats.state"
+import { chatSubscriptions, userWebSockets } from "@/src/api/chats/chats.state"
 import { eq } from "drizzle-orm"
 import Elysia from "elysia"
 
@@ -19,6 +19,12 @@ export const wsHandler = new Elysia().ws("/ws", {
         }
         chatSubscriptions.get(chatId)?.add(ws)
       }
+
+      if (!userWebSockets.has(userId)) {
+        userWebSockets.set(userId, new Set())
+      }
+      userWebSockets.get(userId)!.add(ws)
+
       ws.subscribe("heartbeat")
       ws.send(JSON.stringify({ type: "connected" }))
     } catch (error) {
@@ -27,6 +33,12 @@ export const wsHandler = new Elysia().ws("/ws", {
   },
   close(ws) {
     // @ts-ignore
+    const userId = ws.data.query.id
+    userWebSockets.get(userId)?.delete(ws)
+    if (userWebSockets.get(userId)?.size === 0) {
+      userWebSockets.delete(userId)
+    }
+
     for (const [chatId, subs] of chatSubscriptions) {
       if (subs.has(ws)) {
         subs.delete(ws)
