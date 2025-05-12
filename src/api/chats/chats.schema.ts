@@ -28,7 +28,8 @@ export const chatUser = sqliteTable(
     role: text("role", { enum: ["admin", "member"] })
       .notNull()
       .default("member"),
-    pinned: integer("pinned", { mode: "boolean" }).notNull().default(false)
+    pinned: integer("pinned", { mode: "boolean" }).notNull().default(false),
+    muted: integer("muted", { mode: "boolean" }).notNull().default(false)
   },
   (table) => ({
     primaryKey: primaryKey(table.chatId, table.userId)

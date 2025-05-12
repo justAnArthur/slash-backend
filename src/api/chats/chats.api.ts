@@ -1,13 +1,14 @@
-import { message, messageAttachment } from "@/src/api/messages/messages.schema"
-import { user } from "@/src/api/users/users.schema"
-import db from "@/src/db/connection"
-import { checkAndGetSession } from "@/src/lib/auth"
 import {
   broadcastMessage,
   subscribeUsersToChat,
   unsubscribeAllFromChat,
   unsubscribeUserFromChat
 } from "@/src/api/chats/chats.state"
+import { notifyChatUsers } from "@/src/api/chats/push-message"
+import { message, messageAttachment } from "@/src/api/messages/messages.schema"
+import { user } from "@/src/api/users/users.schema"
+import db from "@/src/db/connection"
+import { checkAndGetSession } from "@/src/lib/auth"
 import { and, count, desc, eq, exists, inArray, ne, sql } from "drizzle-orm"
 import Elysia, { type Context, t } from "elysia"
 import type {
@@ -15,7 +16,6 @@ import type {
   MessageResponse
 } from "../messages/messages.api"
 import { chat, chatUser } from "./chats.schema"
-import { notifyChatUsers } from "@/src/api/chats/push-message"
 
 interface CreateChatRequest {
   userIds: string[]
@@ -97,7 +97,7 @@ export default new Elysia({ prefix: "/chats" })
           chatId: newChat.id,
           senderId: "SYSTEM",
           type: "TEXT" as const,
-          content: `Chat was created`
+          content: "Chat was created"
         })
         .returning()
 
@@ -266,7 +266,8 @@ export default new Elysia({ prefix: "/chats" })
         .select({
           id: chat.id,
           type: chat.type,
-          name: chat.name
+          name: chat.name,
+          muted: chatUser.muted
         })
         .from(chat)
         .leftJoin(chatUser, eq(chat.id, chatUser.chatId))
@@ -440,17 +441,13 @@ export default new Elysia({ prefix: "/chats" })
     }: {
       params: { id: string }
       request: Context["request"]
-      body: { pinned?: boolean }
+      body: { pinned?: boolean; muted?: boolean }
     }) => {
       await checkAndGetSession(request.headers)
       const chatId = params.id
 
-      const { pinned } = body
-
-      await db
-        .update(chatUser)
-        .set({ pinned: !!pinned })
-        .where(eq(chatUser.chatId, chatId))
+      if (Object.values(body).length === 0)
+        await db.update(chatUser).set(body).where(eq(chatUser.chatId, chatId))
     },
     {
       detail: {
@@ -467,7 +464,7 @@ export default new Elysia({ prefix: "/chats" })
     }
   )
   .get(
-    "/:id/info",
+    "/:id/info", // @ts-ignore
     async ({
       params,
       error,
@@ -512,7 +509,6 @@ export default new Elysia({ prefix: "/chats" })
         )
         .where(and(eq(message.chatId, chatId), eq(message.type, "IMAGE")))
 
-      console.log(attachmentIds)
       return {
         chatId: chatDetails.id,
         createdAt: new Date(chatDetails.createdAt).toString(),
@@ -554,6 +550,7 @@ export type ChatListResponse = {
   image: string | null
   type: "group" | "private"
   lastMessage: MessageResponse
+  muted: boolean
 }
 export type ChatInfoResponse = {
   chatId: string
