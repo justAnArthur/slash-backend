@@ -1,3 +1,5 @@
+> **Moved.** This code now lives in [justAnArthur/slash](https://github.com/justAnArthur/slash) under [`modules/backend`](https://github.com/justAnArthur/slash/tree/main/modules/backend), with its full commit history. This repository is archived.
+
 # Getting started
 
 #### Install dependencies
